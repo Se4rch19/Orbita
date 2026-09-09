@@ -159,12 +159,20 @@ test("Daily attempts vary and highest tier persists", () => {
   a.invincible = 100;
   a.lights = a.config.dailyTiers![2];
   a.update(80);
+  a.config.assistance = true;
+  a.score = 500;
   settle(s, a, { kind: "normal" });
   assert.equal(s.mobile.daily[0].tier, 3);
   assert.equal(
     normalize3(JSON.parse(JSON.stringify(s))).mobile.daily[0].tier,
     3,
   );
+  b.update(80);
+  b.score = 100;
+  settle(s, b, { kind: "normal" });
+  assert.equal(s.mobile.daily[0].best, 500);
+  assert.equal(s.mobile.daily[0].assisted, true);
+  assert.equal(s.mobile.daily[0].tier, 3);
 });
 test("Infinite transitions preserve score and shields and reset combo", () => {
   const g = new Game("infinite", 7, { mobile: true, journey: true, world: 0 });

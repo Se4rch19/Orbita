@@ -39,7 +39,7 @@ function pilot(g: Game) {
       );
       if (g.lane !== target && !crossesGap) {
         const n = g.config.orbits.length;
-        g.switch((target - g.lane + n) % n === 1 ? 1 : -1);
+        g.move(Math.sign(target - g.lane));
       }
     }
     g.update(1 / 60);
@@ -58,7 +58,9 @@ for (let world = 0; world < 5; world++)
       lights = 0,
       hits = 0;
     for (let seed = 0; seed < 30; seed++) {
-      const result = pilot(new Game("voyage", seed, { world, level }));
+      const result = pilot(
+        new Game("voyage", seed, { world, level, mobile: true }),
+      );
       wins += Number(result.cleared);
       lights += result.lights;
       hits += result.hits;
@@ -76,7 +78,8 @@ let dailyWins = 0;
 for (let day = 1; day <= 30; day++)
   for (let seed = 0; seed < 10; seed++)
     dailyWins += Number(
-      pilot(new Game("daily", seed, { date: 20260900 + day })).cleared,
+      pilot(new Game("daily", seed, { date: 20260900 + day, mobile: true }))
+        .cleared,
     );
 console.log(
   JSON.stringify(

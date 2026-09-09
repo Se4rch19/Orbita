@@ -86,7 +86,11 @@ export function settle(s: Save, g: Game, context: Context, banked = 0) {
         attempts: old?.attempts ?? 1,
         tier: Math.max(old?.tier ?? 0, tier),
         best: Math.max(old?.best ?? 0, g.score),
-        assisted: g.config.assistance === true,
+        assisted:
+          g.score > (old?.best ?? 0) ||
+          (g.score === old?.best && !g.config.assistance)
+            ? g.config.assistance === true
+            : (old?.assisted ?? g.config.assistance === true),
       },
       ...s.mobile.daily.filter((r) => r.date !== g.config.dailyDate),
     ].slice(0, 31);
