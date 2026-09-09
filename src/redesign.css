@@ -1,0 +1,324 @@
+.mode-detail {
+  max-width: 390px;
+  min-height: 102px;
+  margin: 0 0 17px;
+  color: var(--muted);
+}
+.mode-detail p {
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0 0 9px;
+}
+.mode-detail small {
+  font-size: 10px;
+  line-height: 1.5;
+  display: block;
+  color: #aac5c9;
+}
+.session-options {
+  display: flex;
+  gap: 7px;
+  margin: 13px 0;
+}
+.session-options button,
+.world-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #ffffff05;
+  padding: 10px 13px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.session-options button.selected,
+.world-tabs button.selected {
+  border-color: #94efcf80;
+  color: var(--mint);
+  background: #94efcf0a;
+}
+.world-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 25px;
+}
+.level-list {
+  display: grid;
+  gap: 13px;
+  margin-bottom: 27px;
+}
+.level-card {
+  display: grid;
+  grid-template-columns: 48px 1fr 98px;
+  align-items: center;
+  gap: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  padding: 22px;
+}
+.level-number {
+  font-size: 28px;
+  color: var(--mint);
+  font-weight: 350;
+}
+.level-copy h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 9px 0;
+}
+.level-copy p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 7px 0;
+}
+.level-copy small {
+  font-size: 11px;
+  color: #a4bfbd;
+}
+.level-copy .eyebrow {
+  font-size: 8px;
+  letter-spacing: 2px;
+}
+.level-card button {
+  max-width: 100%;
+  padding: 13px 16px;
+  font-size: 12px;
+  justify-content: center;
+}
+.level-card.locked {
+  opacity: 0.52;
+}
+.world-card p {
+  min-height: 4.8em;
+  line-height: 1.6;
+}
+.world-status {
+  gap: 10px;
+  line-height: 1.6;
+}
+.shape-rounded-triangle {
+  border-radius: 47% 47% 40% 40%;
+  transform: rotate(15deg);
+}
+.shape-petal {
+  border-radius: 42% 48% 42% 48%;
+}
+.record-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.record-bar span:last-child {
+  color: var(--mint);
+  font-variant-numeric: tabular-nums;
+}
+.objective-bar {
+  padding: 14px 5px 5px;
+  min-height: 43px;
+  text-align: center;
+  color: var(--gold);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.orbit-controls {
+  display: flex;
+  gap: 10px;
+}
+.previous-orbit {
+  width: 55px;
+  flex-shrink: 0;
+  transform: rotate(180deg);
+  padding: 14px;
+}
+.orbit-controls .primary {
+  flex: 1;
+}
+.score-comparison {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 13px;
+}
+.score-comparison span {
+  color: var(--muted);
+}
+.score-comparison strong {
+  color: var(--mint);
+  font-weight: 500;
+}
+.game-shell {
+  height: 100dvh;
+  max-height: 1000px;
+  min-height: 560px;
+}
+.arena-wrap {
+  flex: 1;
+  min-height: 0;
+}
+.game-canvas {
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.game-hud {
+  padding-bottom: 8px;
+}
+.game-bottom {
+  margin-top: 10px;
+}
+.arena-label {
+  bottom: 0;
+  font-size: 9px;
+}
+.game-header .eyebrow {
+  text-align: center;
+  line-height: 1.6;
+}
+.game-header .brand {
+  flex-shrink: 0;
+}
+.game-header .icon-button {
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  .modes {
+    order: 4;
+  }
+  .mode-detail {
+    order: 5;
+    width: 100%;
+    text-align: center;
+    margin: 0 0 15px;
+    min-height: 92px;
+  }
+  .mode-detail p {
+    font-size: 12px;
+  }
+  .mode-detail small {
+    font-size: 10px;
+  }
+  .session-options {
+    justify-content: center;
+  }
+  .play-home {
+    order: 6;
+  }
+  .sub-note {
+    order: 7;
+  }
+  .sub-note .text-button {
+    font-size: 10px;
+    padding: 7px 0;
+  }
+  .mode {
+    font-size: 10px;
+    padding: 11px 4px;
+  }
+  .hero-visual {
+    height: 225px;
+    min-height: 225px;
+    margin-top: 0;
+  }
+  .hero-canvas {
+    width: 260px;
+    height: 260px;
+  }
+  .level-card {
+    grid-template-columns: 26px 1fr 64px;
+    padding: 17px 13px;
+    gap: 12px;
+  }
+  .level-number {
+    font-size: 22px;
+  }
+  .level-copy h3 {
+    font-size: 16px;
+  }
+  .level-copy p {
+    font-size: 11px;
+  }
+  .level-copy small {
+    font-size: 9px;
+  }
+  .level-card button {
+    padding: 13px 7px;
+    font-size: 11px;
+  }
+  .world-tabs button {
+    padding: 9px 11px;
+    font-size: 10px;
+  }
+  .objective-bar {
+    font-size: 10px;
+    min-height: 38px;
+    padding-top: 10px;
+  }
+  .record-bar {
+    font-size: 9px;
+  }
+  .game-hud {
+    padding-top: 16px;
+  }
+  .game-bottom p {
+    font-size: 10px;
+    margin-top: 9px;
+  }
+  .game-bottom .primary {
+    font-size: 13px;
+    padding: 15px 14px;
+  }
+  .game-shell {
+    padding-bottom: max(15px, env(safe-area-inset-bottom));
+  }
+  .arena-label {
+    font-size: 8px;
+    bottom: 0;
+  }
+  .world-status {
+    font-size: 9px;
+  }
+  .world-card p {
+    font-size: 10px;
+    min-height: 6.5em;
+  }
+}
+@media (max-height: 650px) {
+  .game-shell {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  .game-hud {
+    padding-top: 12px;
+  }
+  .time-track {
+    margin-top: 12px;
+  }
+  .game-bottom .primary {
+    padding: 13px;
+  }
+  .game-header .brand {
+    font-size: 15px;
+  }
+  .objective-bar {
+    font-size: 9px;
+    min-height: 30px;
+  }
+  .game-hud .score-num {
+    font-size: 28px;
+  }
+  .game-hud .hud-label {
+    font-size: 8px;
+  }
+  .record-bar {
+    padding: 5px;
+  }
+}

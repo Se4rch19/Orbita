@@ -1,0 +1,8 @@
+{
+  "appId": "com.orbita.minigame",
+  "appName": "Órbita",
+  "webDir": "dist",
+  "backgroundColor": "#081b26",
+  "android": { "backgroundColor": "#081b26" },
+  "ios": { "backgroundColor": "#081b26", "contentInset": "never" }
+}

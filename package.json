@@ -1,0 +1,39 @@
+{
+  "name": "orbita-game",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc && vite build && node scripts/service-worker.mjs",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "android:sync": "npm run build && cap sync android",
+    "android:debug": "npm run android:sync && cd android && gradlew.bat assembleDebug",
+    "ios:sync": "npm run build && cap sync ios",
+    "typecheck": "tsc --noEmit",
+    "format:check": "prettier --check src tests",
+    "qa:regression": "node scripts/qa-regression03.mjs && node scripts/qa-offline03.mjs",
+    "qa:forge": "node scripts/qa-forge03.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.1",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "8.5.1",
+    "@capacitor/haptics": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.1",
+    "@capacitor/ios": "8.5.1",
+    "@playwright/test": "^1.58.2",
+    "prettier": "^3.9.6",
+    "sharp": "^0.35.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "11.1.1"
+    }
+  }
+}
