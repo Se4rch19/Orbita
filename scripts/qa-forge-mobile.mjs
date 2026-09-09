@@ -3,7 +3,7 @@ import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { components } from "../src/forge.ts";
-const out = process.env.ORBITA_QA_OUT ?? (existsSync("../Orbita-0.3") ? "../Orbita-0.3/capturas" : "../capturas");
+const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.3.1/validation";
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch(),
   checks = [],
@@ -21,11 +21,11 @@ try {
     if (!r.url().startsWith("http://localhost:4173/")) requests.push(r.url());
   });
   await page.clock.install();
-  await page.goto("http://localhost:4173/?qa=0.3");
+  await page.goto("http://localhost:4173/?qa=031");
   const action = (a) => page.locator(`[data-action="${a}"]`).first();
   const read = () =>
     page.evaluate(() => JSON.parse(localStorage.getItem("orbita.v3")));
-  await page.getByRole("button", { name: "Forja", exact: true }).click();
+  await page.getByRole("button", { name: /^FORJA/ }).click();
   await expect(page.locator(".forge-preview canvas")).toBeVisible();
   assert.equal(await page.locator("canvas").count(), 1);
   await page.locator("#planet-name").fill("<Luna>");
@@ -39,7 +39,7 @@ try {
     "fresh Forge preview, safe naming, planet save and first-creation reward",
   );
   await page.reload();
-  await page.getByRole("button", { name: "Forja", exact: true }).click();
+  await page.getByRole("button", { name: /^FORJA/ }).click();
   await expect(page.locator("#planet-name")).toHaveValue("Luna");
   await action("forge-save").click();
   assert.equal((await read()).totalLights, 10);
@@ -50,7 +50,7 @@ try {
     localStorage.setItem("orbita.v3", JSON.stringify(s));
   });
   await page.reload();
-  await page.getByRole("button", { name: "Forja", exact: true }).click();
+  await page.getByRole("button", { name: /^FORJA/ }).click();
   await action("open-collection").click();
   await page
     .locator('[data-action="forge-acquire"][data-component="shape-square"]')
@@ -132,8 +132,8 @@ try {
   await action("pause").click();
   await action("abandon").click();
   checks.push("clipboard fallback preserves result controls and replay");
-  await action("open-anomalies").click();
-  await expect(action("anomaly-play")).toBeDisabled();
+  await action("campaign").click();
+  await expect(action("open-anomalies")).toHaveCount(0);
   checks.push("post-campaign entry locked before campaign completion");
   await page.evaluate(
     (ids) => {
@@ -147,7 +147,7 @@ try {
     components.map((c) => c.id),
   );
   await page.reload();
-  await page.getByRole("button", { name: "Forja", exact: true }).click();
+  await page.getByRole("button", { name: /^FORJA/ }).click();
   for (const cat of [...new Set(components.map((c) => c.category))]) {
     await page
       .locator(`[data-action="forge-category"][data-category="${cat}"]`)
@@ -176,6 +176,7 @@ try {
   await page.screenshot({ path: out + "/10-mi-orbita-eclipse.png" });
   await action("pause").click();
   await action("abandon").click();
+  await action("campaign").click();
   await action("open-anomalies").click();
   await expect(action("anomaly-play")).toBeEnabled();
   await action("anomaly-play").click();
@@ -186,7 +187,7 @@ try {
     "post-campaign anomaly launches and settles through existing engine",
   );
   await action("campaign").click();
-  await page.getByRole("button", { name: "Forja", exact: true }).click();
+  await page.getByRole("button", { name: /^FORJA/ }).click();
   await page.getByRole("button", { name: "Ajustes", exact: true }).click();
   await page.getByRole("switch", { name: "Animación ambiental" }).click();
   await page.getByRole("button", { name: "Cerrar ajustes" }).click();
@@ -196,12 +197,13 @@ try {
   await page.reload();
   await context.setOffline(true);
   await page.reload();
-  await page.getByRole("button", { name: "Forja", exact: true }).click();
+  await page.getByRole("button", { name: /^FORJA/ }).click();
   await expect(page.locator("#planet-name")).toHaveValue("Luna");
   await action("personal-play").click();
   await page.clock.fastForward(3000);
   await action("pause").click();
   await action("abandon").click();
+  await page.locator('[data-action="page"][data-page="play"]').click();
   await action("open-codes").click();
   await page.locator("#challenge-code").fill(code);
   await action("code-play").click();
@@ -220,7 +222,7 @@ try {
         false,
       );
     }
-    await page.getByRole("button", { name: "Forja", exact: true }).click();
+    await page.getByRole("button", { name: /^FORJA/ }).click();
     await action("open-collection").click();
     assert.equal(
       await page.evaluate(
@@ -243,7 +245,7 @@ try {
   assert.deepEqual(errors, []);
   assert.deepEqual(requests, []);
   await writeFile(
-    out + "/qa-forge03.json",
+    out + "/qa-forge031.json",
     JSON.stringify(
       { status: "passed", checks, errors, externalRequests: requests },
       null,

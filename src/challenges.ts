@@ -10,7 +10,7 @@ export function checksum(bytes: number[]) {
   }
   return crc;
 }
-export function encodeChallenge(q: Challenge) {
+export function encodeChallenge(q: Challenge, rules = GENERATION_VERSION) {
   if (
     !Number.isInteger(q.seed) ||
     q.seed < 0 ||
@@ -24,8 +24,8 @@ export function encodeChallenge(q: Challenge) {
   )
     throw new Error("Parámetros de reto inválidos");
   const b = [
-    3,
-    GENERATION_VERSION,
+    rules === 3 ? 4 : 3,
+    rules,
     q.world,
     q.level,
     (q.seed >>> 24) & 255,
@@ -60,7 +60,10 @@ export function decodeChallenge(value: string): Challenge {
     throw new Error(
       "El código tiene un error de copia. Comprueba sus caracteres.",
     );
-  if (b[0] !== 3 || b[1] !== GENERATION_VERSION)
+  if (!(
+    (b[0] === 3 && b[1] === GENERATION_VERSION) ||
+    (b[0] === 4 && b[1] === 3)
+  ))
     throw new Error("Este código requiere otra versión compatible de Órbita.");
   const q = {
     world: b[2],
@@ -72,8 +75,17 @@ export function decodeChallenge(value: string): Challenge {
 }
 export const challengeGame = (code: string) => {
   const q = decodeChallenge(code);
-  return new Game("voyage", q.seed, { world: q.world, level: q.level });
+  return new Game("voyage", q.seed, {
+    world: q.world,
+    level: q.level,
+    mobile: code.trim().toUpperCase().startsWith("ORB-0403"),
+  });
 };
+export const encodeMobileChallenge = (q: Challenge) => encodeChallenge(q, 3);
+export function canonicalChallenge(code: string) {
+  decodeChallenge(code);
+  return code.trim().toUpperCase();
+}
 export function anomaly(tier: number, attemptSeed: number) {
   if (!Number.isInteger(tier) || tier < 0 || tier > 1e6)
     throw new Error("Anomalía inválida");

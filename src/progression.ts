@@ -1,3 +1,4 @@
+import { ASSIST_FRAGMENT_MULTIPLIER } from "./mobile-state.ts";
 import type { Game } from "./engine.ts";
 import {
   emptyDaily,
@@ -46,12 +47,20 @@ export function bestFor(save: Save, game: Game) {
         ? save.infiniteBest
         : 0;
 }
-export function earnedFragments(game: Pick<Game, "mode" | "lights" | "time">) {
-  return game.mode === "tutorial"
-    ? 0
-    : game.mode === "zen"
-      ? Math.min(Math.floor(game.lights * 0.25), Math.floor(game.time / 10))
-      : game.lights;
+export function earnedFragments(
+  game: Pick<Game, "mode" | "lights" | "time"> & {
+    config?: { assistance?: boolean };
+  },
+) {
+  const raw =
+    game.mode === "tutorial"
+      ? 0
+      : game.mode === "zen"
+        ? Math.min(Math.floor(game.lights * 0.25), Math.floor(game.time / 10))
+        : game.lights;
+  return Math.floor(
+    raw * (game.config?.assistance ? ASSIST_FRAGMENT_MULTIPLIER : 1),
+  );
 }
 export function recordRun(save: Save, game: Game, alreadyBanked = 0) {
   if (game.mode === "tutorial") {
@@ -70,7 +79,11 @@ export function recordRun(save: Save, game: Game, alreadyBanked = 0) {
     p.best[l] = Math.max(p.best[l], game.score);
     save.best = Math.max(save.best, game.score);
     if (game.outcome === "cleared") {
-      if (!p.cleared[l]) bonus = 20 + l * 5;
+      if (!p.cleared[l])
+        bonus = Math.floor(
+          (20 + l * 5) *
+            (game.config.assistance ? ASSIST_FRAGMENT_MULTIPLIER : 1),
+        );
       p.cleared[l] = true;
       save.completed++;
     }

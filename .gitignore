@@ -21,3 +21,20 @@ test-results/
 outputs/
 work/
 .DS_Store
+
+# Historical local files preserved when automated filesystem cleanup is unavailable.
+docs/*0.2.md
+docs/REDISENO-0.3.md
+docs/VALIDACION-0.3.md
+docs/VALIDACION.md
+docs/DISENO-Y-EVIDENCIA.md
+docs/CATALOGO-0.3.md
+scripts/qa.mjs
+scripts/qa-extra.mjs
+scripts/qa-regression03.mjs
+scripts/qa-forge03.mjs
+scripts/qa-offline03.mjs
+scripts/balance.ts
+scripts/daily-direct.ts
+scripts/device-baseline.mjs
+scripts/device-resume.mjs

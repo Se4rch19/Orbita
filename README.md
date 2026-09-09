@@ -1,25 +1,12 @@
-# Órbita — Gameplay Redesign 0.3
+# Órbita 0.3.1
 
-Juego móvil offline de reflejos, mundos orbitales y creación de un pequeño universo personal. Extendemos la base 0.2 con Forja Planetaria, 34 componentes, tres espacios progresivos, diez hitos, Mi órbita, Códigos y Anomalías. No contiene anuncios, pagos, cuentas, servidores ni analítica remota. No presupone precio de venta.
+Juego Android offline de reflejos. Desliza alejándote del centro para salir una órbita, o acercándote para entrar. Cada gesto mueve un camino; nunca conecta los extremos. Campaña, cinco mundos, Calma, Forja con 34 componentes, planetas personales, códigos y Anomalías.
 
-## Jugar
-
-En la carpeta de entrega, abre `Jugar-Orbita.cmd` o instala `Orbita-0.3-debug.apk` en Android. El APK incluye todos los recursos y funciona con la computadora apagada. La vista previa local está en [localhost:4173](http://localhost:4173/?v=0.3).
-
-Espacio/↑ avanza de camino, ↓ retrocede, P/Escape pausa. En móvil, toca los controles inferiores. Forja permite guardar y jugar alrededor de tu planeta; Colección muestra requisitos y fabricación. El entrenamiento y los cuatro modos de 0.2 se conservan.
-
-## Documentación
-
-- [Informe completo 0.3](docs/REDISENO-0.3.md): los 13 puntos de implementación.
-- [Validación 0.3](docs/VALIDACION-0.3.md): resultados exactos y límites.
-- [Catálogo de piezas e hitos](docs/CATALOGO-0.3.md): generado desde los datos del juego.
-- [Preparación de publicación](docs/PUBLICACION.md): estado de la distribución.
-
-Los documentos 1.0/0.2 se conservan como historial; sus decisiones comerciales y su alcance no describen esta versión.
+Esta versión incorpora navegación JUGAR / FORJA / BITÁCORA, retos diarios con tres metas, viajes entre mundos en Infinito, música procedural original y respaldo nativo. La asistencia está desactivada inicialmente y entrega el 50% de fragmentos. Sin anuncios, pagos, cuentas ni permiso INTERNET.
 
 ## Desarrollo
 
-Verificado con Node 24.17.0. TypeScript estricto, Canvas 2D, Vite y Capacitor 8. No se añadieron dependencias de ejecución.
+Node 24, TypeScript, Vite, Canvas 2D y Capacitor 8. Una sola raíz de código: esta carpeta. Los artefactos se entregan fuera del repositorio en `outputs/Orbita-0.3.1/`.
 
 ```powershell
 npm ci
@@ -27,22 +14,28 @@ npm run typecheck
 npm run format:check
 npm test
 npm run build
-npm audit --omit=dev
+node scripts/serve.mjs
 ```
 
-Para las pruebas de navegador, iniciar `node scripts/serve.mjs` en una terminal; si ya está activo en 4173, reutilizarlo. En otra:
+Abrir [la vista previa](http://localhost:4173/?v=0.3.1). Dentro/Fuera también funcionan mediante botones y flechas del teclado. P/Escape pausa. Toque clásico usa zonas interior/exterior sin saltos cíclicos.
+
+## Validación
 
 ```powershell
 npx playwright install chromium
 npm run qa:regression
 npm run qa:forge
+node --experimental-strip-types scripts/balance-mobile.ts
+node --experimental-strip-types scripts/daily-balance.ts
 ```
 
-Los scripts crean perfiles aislados de Chromium. No modifican los datos del navegador del jugador. Guardan capturas en la carpeta de entrega detectada o permiten indicar otra mediante `ORBITA_QA_OUT`. Los scripts `qa.mjs` y `qa-extra.mjs` originales permanecen como historial 0.2; utilizar las variantes 03 de los comandos anteriores para esta versión.
+Las pruebas de navegador usan perfiles aislados, requieren el servidor 4173 y generan evidencia en `../outputs/Orbita-0.3.1/validation/`; `ORBITA_QA_OUT` permite otra ruta. Los 70 tests anteriores se conservan intactos; hay 19 nuevos, incluida una prueba de 200 000 puertas procedurales.
 
-## Android e iOS
+Los scripts `device-mobile.mjs` y `device-finish.mjs` son pruebas físicas supervisadas: operan solo el WebView de `com.orbita.minigame`, generan actividad y guardados reales de prueba. Requieren instalación debug, ADB, app en primer plano y reenvío CDP en 9223 al socket `webview_devtools_remote_<PID>`. `ORBITA_ADB` permite indicar ADB. Coordenadas calibradas para el Redmi conectado de 1080×2400: revisarlas antes de usar otro equipo. No borran datos ni cambian ajustes del sistema.
 
-Configurar JDK 21, Android SDK 36, `JAVA_HOME` y la ruta de SDK mediante `ANDROID_HOME` o `android/local.properties`. El ZIP excluye la configuración específica del equipo.
+## Android
+
+JDK 21, Android SDK 36. Configurar `JAVA_HOME` y `ANDROID_HOME`, o `android/local.properties` (excluido de Git).
 
 ```powershell
 npm run android:sync
@@ -50,12 +43,22 @@ cd android
 .\gradlew.bat assembleDebug bundleRelease --console=plain
 ```
 
-La entrega se compiló con versionName 0.3.0 y versionCode 3. El APK es de depuración; el AAB necesita firma de publicación. INTERNET se elimina del manifiesto combinado. Los recursos se sirven desde assets a través del WebView de Capacitor.
+Paquete `com.orbita.minigame`, versionName `0.3.1`, versionCode `4`. Actualizar con `adb install -r`, sin desinstalar. APK debug para pruebas; AAB sin firma para preparar publicación. Nunca incluir claves ni credenciales en Git. iOS conserva el proyecto y su versión, pero requiere macOS/Xcode y no está validado físicamente.
 
-En Mac, `npm run ios:sync` y `npx cap open ios`. El proyecto iOS fue sincronizado en Windows, pero no compilado. No se ha ejecutado el APK en un teléfono o emulador; arranque, retirada del permiso, actualización y rendimiento físico siguen pendientes.
+## Arquitectura y datos
 
-## Arquitectura
+- `input.ts`: gesto radial y movimiento adyacente.
+- `config.ts`, `generator.ts`, `engine.ts`: perfiles, generación y simulación fija a 120 Hz.
+- `music.ts`, `audio.ts`: cinco temas originales, capas y síntesis WebAudio.
+- `mobile-ui.ts`, `main.ts`, `mobile.css`: experiencia móvil.
+- `forge.ts`, `forge-art.ts`, `challenges.ts`: creación, colección, códigos y Anomalías.
+- `storage3.ts`, `mobile-state.ts`, `native-storage.ts`: migración y persistencia.
+- `ProgressStorePlugin.java`: dos copias en SharedPreferences; las reglas Android incluyen solo `orbita_progress.xml`.
 
-`engine.ts`, `config.ts`, `generator.ts`, `geometry.ts`, `random.ts`, `progression.ts` y `audio.ts` conservan las reglas 0.2. `forge.ts` define componentes y economía; `forge-art.ts` añade visuales; `challenges.ts` codifica retos y Anomalías; `progression3.ts` liquida cada contexto; `storage3.ts` migra a v3; `universe-ui.ts` y `forge.css` incorporan las pantallas. `main.ts` y `art.ts` los conectan al juego existente.
+Guardado raíz v3 con estado móvil versionado; no se guarda la simulación activa. Los códigos de 0.3 conservan el generador anterior; los nuevos usan formato 4/reglas 3. Todos los controles de la interfaz son adyacentes. El método cíclico antiguo del motor se conserva únicamente por compatibilidad con reglas y tests anteriores.
 
-Las claves antiguas se conservan al migrar. El guardado es local, con respaldo anterior; no hay nube ni restauración de una partida interrumpida. Mantener la misma identidad y firma al actualizar evita perder el acceso al almacenamiento anterior. No desinstalar antes de comprobar una actualización si se desea conservar progreso.
+La copia del sistema depende de Android y de la configuración del usuario. Se validó migración y persistencia local; no se certificó restauración desde nube ni entre dispositivos. Véanse [informe](docs/RELEASE-0.3.1.md), [publicación](docs/PUBLICACION.md) y [catálogo](docs/CATALOGO.md).
+
+## Historial
+
+Repositorio oficial: [Se4rch19/Orbita](https://github.com/Se4rch19/Orbita). `v0.3.0` conserva la base funcional anterior; el trabajo está en `release/orbita-0.3.1`. Los documentos y scripts antiguos se recuperan desde la etiqueta base.

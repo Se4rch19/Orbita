@@ -284,7 +284,8 @@ export type Universe = {
   anomalyTier: number;
   anomalyBest: number;
 };
-export type Save = BaseSave & { universe: Universe };
+import type { MobileState } from "./mobile-state.ts";
+export type Save = BaseSave & { universe: Universe; mobile: MobileState };
 export const freshUniverse = (): Universe => ({
   inventory: starterIds(),
   spent: 0,
@@ -487,13 +488,15 @@ export const milestones: {
     reward: 30,
   },
 ];
-export function discover(s: Save) {
+export function discover(s: Save, multiplier = 1) {
   const found: string[] = [];
   for (const m of milestones)
     if (!s.universe.milestones.includes(m.id) && conditionMet(s, m.condition)) {
       s.universe.milestones.push(m.id);
-      s.totalLights += m.reward;
-      found.push(`Hito: ${m.name} · +${m.reward} fragmentos`);
+      s.totalLights += Math.floor(m.reward * multiplier);
+      found.push(
+        `Hito: ${m.name} · +${Math.floor(m.reward * multiplier)} fragmentos`,
+      );
     }
   for (const c of components)
     if (

@@ -24,16 +24,10 @@ export const escape = (s: string) =>
 const button = (action: string, label: string, extra = "") =>
   `<button class="secondary" data-action="${action}" ${extra}>${label}</button>`;
 export function discoveries(s: Save) {
-  const labels = s.universe.pending
-    .slice(0, 3)
-    .map((id) => component(id)!.name)
-    .join(" · ");
-  const more =
-    s.universe.pending.length > 3
-      ? ` · y ${s.universe.pending.length - 3} más en tu colección`
-      : "";
   return s.universe.pending.length
-    ? `<aside class="discovery-panel" role="status"><span class="eyebrow">Nuevos descubrimientos</span><p>${labels}${more}</p>${button("open-forge", "Probar en la Forja")} ${button("ack-discoveries", "Entendido")}</aside>`
+    ? '<aside class="discovery-panel"><span>✦ ' +
+        s.universe.pending.length +
+        ' nuevos descubrimientos</span><button class="text-button" data-action="open-collection">Ver →</button></aside>'
     : "";
 }
 export function forgePage(
