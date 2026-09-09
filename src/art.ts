@@ -232,6 +232,18 @@ export class Art {
       if (item.passed) continue;
       const itemLane = game ? game.itemLane(item as Item) : item.lane;
       const p = lanePoint(orbits, itemLane, item.angle);
+      if (game?.config.assistance && item.kind !== "light") {
+        const ahead = (item.angle - game.angle) * game.direction;
+        if (ahead > 0 && ahead / Math.max(0.1, game.speed) < 0.9) {
+          c.save();
+          c.strokeStyle = "#ffe0bd";
+          c.lineWidth = 2.5;
+          c.beginPath();
+          c.arc(p.x, p.y, 14, 0, TAU);
+          c.stroke();
+          c.restore();
+        }
+      }
       if (item.kind === "gap") {
         const width = (item as Item).width ?? 0.32,
           path = this.path(

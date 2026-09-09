@@ -25,6 +25,8 @@ export class PatternGenerator {
   safe = 0;
   pattern: PatternName = "trail";
   remaining = 0;
+  priorSafe = 0;
+  direction = 1;
   config: SessionConfig;
   constructor(config: SessionConfig, seed: number) {
     this.config = config;
@@ -69,6 +71,26 @@ export class PatternGenerator {
     if (pattern === "crossing") this.safe = this.safe === 0 ? 0 : n - 1;
     if (!active.includes(this.safe))
       this.safe = active[Math.floor(this.rng() * active.length)];
+    if (this.config.mobile) {
+      // Adjacent safe lanes avoid requiring a two-lane jump from one gesture.
+      if (
+        this.count > 3 &&
+        this.config.mode !== "zen" &&
+        this.config.mode !== "tutorial"
+      ) {
+        if (this.priorSafe === 0) this.direction = 1;
+        if (this.priorSafe === n - 1) this.direction = -1;
+        if (this.rng() < 0.48 + this.config.level * 0.13)
+          this.safe = this.priorSafe + this.direction;
+        else this.safe = this.priorSafe;
+      }
+      this.safe = Math.max(
+        this.priorSafe - 1,
+        Math.min(this.priorSafe + 1, this.safe),
+      );
+      if (!active.includes(this.safe)) this.safe = this.priorSafe;
+      this.priorSafe = this.safe;
+    }
     const blocked: number[] = [];
     const probability =
       this.pattern === "fracture"
@@ -78,7 +100,11 @@ export class PatternGenerator {
           : d.hazardDensity;
     if (
       this.count++ > 3 &&
-      (forceFracture || forceCrossing || this.rng() < probability)
+      (forceFracture ||
+        forceCrossing ||
+        this.rng() <
+          probability *
+            (this.config.mobile && this.config.mode !== "zen" ? 1.45 : 1))
     ) {
       for (let lane = 0; lane < n; lane++)
         if (
@@ -93,7 +119,10 @@ export class PatternGenerator {
       safeLane: this.safe,
       blocked,
       structural: pattern === "fracture" && blocked.length > 0,
-      moving: pattern === "crossing" && blocked.length > 0,
+      moving:
+        pattern === "crossing" &&
+        blocked.length > 0 &&
+        (!this.config.mobile || this.safe !== 1),
       gapWidth: 0.32,
       spacing: d.spacing + this.rng() * 0.2,
       reaction: d.minReaction,

@@ -1,6 +1,6 @@
 {
   "name": "orbita-game",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,8 +13,8 @@
     "ios:sync": "npm run build && cap sync ios",
     "typecheck": "tsc --noEmit",
     "format:check": "prettier --check src tests",
-    "qa:regression": "node scripts/qa-regression03.mjs && node scripts/qa-offline03.mjs",
-    "qa:forge": "node scripts/qa-forge03.mjs"
+    "qa:regression": "node scripts/qa-mobile.mjs",
+    "qa:forge": "node scripts/qa-forge-mobile.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.5.1",

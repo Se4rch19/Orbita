@@ -8,7 +8,8 @@ import {
   milestones,
   type Save,
 } from "./forge.ts";
-import { decodeChallenge, encodeChallenge } from "./challenges.ts";
+import { canonicalChallenge } from "./challenges.ts";
+import { normalizeMobile } from "./mobile-state.ts";
 export type { Save } from "./forge.ts";
 const num = (v: unknown, max = 1e9) =>
   typeof v === "number" && Number.isFinite(v)
@@ -31,7 +32,12 @@ const strings = (v: unknown, allowed: string[]) =>
 export function normalize3(value: unknown): Save {
   const raw = object(value),
     base = legacyNormalize(raw.version === 3 ? { ...raw, version: 2 } : raw);
-  const s: Save = { ...base, version: 3, universe: freshUniverse() },
+  const s: Save = {
+      ...base,
+      version: 3,
+      universe: freshUniverse(),
+      mobile: normalizeMobile(raw.mobile, base.sound),
+    },
     u = s.universe;
   const daily = [s.daily, ...s.dailyHistory]
     .filter((r) => r.completed && r.rules === 2)
@@ -94,7 +100,7 @@ export function normalize3(value: unknown): Save {
       for (const entry of old.challenges.slice(0, 30)) {
         try {
           const r = object(entry);
-          const code = encodeChallenge(decodeChallenge(String(r.code)));
+          const code = canonicalChallenge(String(r.code));
           if (!u.challenges.some((c) => c.code === code))
             u.challenges.push({ code, best: num(r.best), combo: num(r.combo) });
         } catch {}

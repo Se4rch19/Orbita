@@ -1,6 +1,16 @@
 import "./style.css";
 import "./redesign.css";
 import "./forge.css";
+import "./mobile.css";
+import { bindRadial } from "./input";
+import {
+  playHome,
+  settingsContent,
+  continuation,
+  mobileJournal,
+} from "./mobile-ui";
+import { hydrateNative, persistNative, nativeDebug } from "./native-storage";
+import { dailyMobile } from "./config";
 import { readSave, writeSave, resetSave } from "./storage3";
 import {
   defaultDesign,
@@ -14,7 +24,8 @@ import {
 } from "./forge";
 import { settle, type Context } from "./progression3";
 import {
-  encodeChallenge,
+  encodeMobileChallenge as encodeChallenge,
+  canonicalChallenge,
   decodeChallenge,
   challengeGame,
   anomaly,
@@ -119,10 +130,12 @@ function persist() {
   const ok = writeSave(save);
   if (!ok)
     toast("No se pudo guardar. Revisa el espacio disponible del dispositivo.");
+  if (ok) persistNative(save);
   return ok;
 }
 function preferences() {
-  sound.enabled = save.sound;
+  sound.enabled = save.mobile.effects;
+  sound.musicEnabled = save.mobile.music;
   document.body.classList.toggle("reduced", !save.motion);
   if (art) art.motion = save.motion;
 }
@@ -137,51 +150,43 @@ function toast(message: string) {
   toastTimer = window.setTimeout(() => el.remove(), 4000);
 }
 function header() {
-  return `<header><button class="brand" data-action="home" aria-label="Órbita, inicio">${icon("orbit", 31)} ÓRBITA</button><div class="top-right"><span class="pill"><i></i> Un pequeño universo</span><button class="icon-button" data-action="settings" aria-label="Ajustes">${icon("settings", 19)}</button></div></header><nav aria-label="Navegación principal">${[
-    ["play", "Jugar"],
-    ["worlds", "Mundos"],
-    ["forge", "Forja"],
-    ["journal", "Bitácora"],
-  ]
-    .map(
-      ([id, label]) =>
-        `<button data-action="page" data-page="${id}" class="${page === id ? "active" : ""}" ${page === id ? 'aria-current="page"' : ""}>${label}</button>`,
-    )
-    .join("")}</nav>`;
+  const selected = ["forge", "collection"].includes(page)
+    ? "forge"
+    : page === "journal"
+      ? "journal"
+      : "play";
+  return (
+    '<header><button class="brand" data-action="home" aria-label="Órbita, inicio">' +
+    icon("orbit", 27) +
+    ' ÓRBITA</button><button class="icon-button" data-action="settings" aria-label="Ajustes">' +
+    icon("settings", 19) +
+    '</button></header><nav class="bottom-nav" aria-label="Navegación principal">' +
+    [
+      ["play", "JUGAR"],
+      ["forge", "FORJA"],
+      ["journal", "BITÁCORA"],
+    ]
+      .map(
+        ([id, label]) =>
+          '<button data-action="page" data-page="' +
+          id +
+          '" class="' +
+          (id === selected ? "active" : "") +
+          '" ' +
+          (id === selected ? 'aria-current="page"' : "") +
+          ">" +
+          label +
+          (id === "forge" && save.universe.pending.length
+            ? '<i class="forge-dot" aria-label="Nuevos descubrimientos"></i>'
+            : "") +
+          "</button>",
+      )
+      .join("") +
+    "</nav>"
+  );
 }
 function home() {
-  const daily = dailyChallenge(),
-    record = todayRecord(save, daily.date);
-  const descriptions = {
-    voyage:
-      "15 expediciones. Supera objetivos y descubre cómo cambia cada planeta.",
-    zen: "Sin derrotas. Menos obstáculos, un ritmo suave y todo el tiempo que quieras.",
-    daily: `Hoy: ${worlds[daily.world].name} · ${daily.modifier.toLowerCase()}. Recoge ${daily.targetLights} luces en ${daily.duration} s.`,
-    infinite:
-      "Sin reloj de salida. Resiste mientras el universo acelera y supera tu récord.",
-    tutorial: "",
-  };
-  const next = worlds.find((_, i) => !save.unlockedWorlds[i]);
-  return `<div class="home-grid"><div class="hero-copy"><div class="eyebrow home-eyebrow"><span class="dash"></span>Cinco mundos · Siempre sin conexión</div><h1>Un toque.<br> <em>Todo un universo.</em></h1><p class="intro">Recoge luz. Aprende cada mundo.<br>Encuentra un nuevo camino en cada viaje.</p><div class="modes" aria-label="Modo de juego">${(["voyage", "zen", "daily", "infinite"] as Mode[]).map((m) => `<button class="mode ${mode === m ? "selected" : ""}" data-action="mode" data-mode="${m}" aria-pressed="${mode === m}">${names[m]}</button>`).join("")}</div><div class="mode-detail"><p>${descriptions[mode]}</p>${
-    mode === "zen"
-      ? `<div class="session-options" aria-label="Duración de Calma">${[
-          [60, "1 minuto"],
-          [180, "3 minutos"],
-          [0, "Sin límite"],
-        ]
-          .map(
-            ([value, label]) =>
-              `<button data-action="duration" data-duration="${value}" aria-pressed="${zenDuration === value}" class="${zenDuration === value ? "selected" : ""}">${label}</button>`,
-          )
-          .join(
-            "",
-          )}</div><small>La luz se guarda cada minuto. Puedes terminar cuando quieras.</small>`
-      : mode === "daily"
-        ? `<small>${record.completed ? "Señal completada" : record.played ? "Señal explorada" : "Señal por descubrir"} · Mejor: ${fmt(record.best)} · ${record.attempts} intentos</small>`
-        : mode === "infinite"
-          ? `<small>Tu mejor Infinito: ${fmt(save.infiniteBest)} · Mundo: ${worlds[save.world].name}</small>`
-          : `<small>${save.campaign.flatMap((p) => p.cleared).filter(Boolean).length} de 15 expediciones superadas</small>`
-  }</div><button class="primary play-home" data-action="play">${mode === "voyage" ? "Explorar campaña" : mode === "zen" ? "Entrar en calma" : mode === "infinite" ? "Viajar sin límite" : "Aceptar el reto"} ${icon("arrow")}</button><div class="sub-note"><button class="text-button" data-action="training">${save.tutorial ? "Repetir entrenamiento · 30 s" : "¿Tu primer viaje? Aprende jugando · 30 s"}</button></div></div><div class="hero-visual"><span class="float-label">${icon("star", 13)} UN NUEVO CAMINO EN CADA VIAJE</span><canvas class="hero-canvas" aria-label="Planeta ${worlds[save.world].name}"></canvas><div class="planet-caption">${worlds[save.world].name}<span>${worlds[save.world].subtitle}</span></div></div></div><div class="universe-links"><button class="secondary" data-action="open-forge">Forja Planetaria</button><button class="secondary" data-action="open-codes">Códigos de desafío</button><button class="secondary" data-action="open-anomalies">Anomalías</button></div><div class="stats-strip"><div class="stat">${icon("award")}<div><strong>${save.campaign.flatMap((p) => p.cleared).filter(Boolean).length}<span> / 15</span></strong><span>Expediciones superadas</span></div></div><div class="stat">${icon("star")}<div><strong>${fmt(save.totalLights)}</strong><span>Fragmentos de luz</span></div></div><div class="stat">${icon("leaf")}<div><strong>${save.unlockedWorlds.filter(Boolean).length}<span> / 5</span></strong><span>Mundos descubiertos</span></div></div></div><div class="bottom-card"><div><strong>${next ? `Próxima parada: ${next.name}` : "Tu universo está abierto"}</strong><p>${next ? "Completa el mundo anterior y reúne sus fragmentos." : "Repite tus expediciones favoritas: la ruta seguirá cambiando."}</p></div><button class="text-button" data-action="campaign">Ver campaña ${icon("arrow", 16)}</button></div>`;
+  return playHome(save);
 }
 function campaign() {
   const w = save.world,
@@ -196,7 +201,7 @@ function campaign() {
     })
     .join(
       "",
-    )}</div><p class="page-intro">Cada intento cambia la ruta. Tu primer éxito en cada expedición suma una bonificación de 20, 25 o 30 fragmentos.</p><button class="text-button" data-action="home">Volver a los modos ${icon("arrow", 16)}</button>`;
+    )}</div><p class="page-intro">Cada intento cambia la ruta. Tu primer éxito en cada expedición suma una bonificación de 20, 25 o 30 fragmentos.</p>${save.campaign.every((p) => p.cleared.every(Boolean)) ? `<button class="primary" data-action="open-anomalies">Continuar hacia Anomalías</button>` : ""}<button class="text-button" data-action="home">Volver a los modos ${icon("arrow", 16)}</button>`;
 }
 function worldsPage() {
   return `<h2 class="page-title">Cinco mundos. Cinco formas de viajar.</h2><p class="page-intro">Elige un planeta para tu campaña, Calma o Infinito. Cada uno cambia las reglas del camino.</p><div class="world-grid">${worlds
@@ -222,13 +227,13 @@ function journal() {
 }
 
 function privacy() {
-  return `<h2 class="page-title">Tu universo es tuyo.</h2><div class="privacy-copy"><p>Órbita 0.3 funciona sin cuenta, anuncios, compras, rastreadores ni servicios de analítica.</p><h3>Qué se guarda</h3><p>En este dispositivo se guardan tus puntuaciones, luces, mundos, planetas personales, componentes, hitos, códigos jugados, últimos viajes y preferencias. No se envían a un servidor. Al desinstalar o borrar los datos de la aplicación puedes perderlos.</p><h3>Controles</h3><p>En Ajustes puedes desactivar sonido, vibración y animaciones ambientales, o borrar tu progreso. La vibración depende de la compatibilidad del dispositivo.</p><h3>Versión de prueba</h3><p>Esta es una versión local de prueba. Antes de publicar en una tienda se debe añadir la identidad y el contacto del responsable de la aplicación a la política de privacidad y completar las declaraciones de la tienda.</p><button class="text-button" data-action="home">Volver al universo ${icon("arrow", 16)}</button></div>`;
+  return `<h2 class="page-title">Tu universo es tuyo.</h2><div class="privacy-copy"><p>Órbita 0.3.1 funciona sin cuenta, anuncios, compras, rastreadores ni servicios de analítica.</p><h3>Qué se guarda</h3><p>En este dispositivo se guardan tus puntuaciones, luces, mundos, planetas personales, componentes, hitos, códigos jugados, últimos viajes y preferencias. No se envían a un servidor. Al desinstalar o borrar los datos de la aplicación puedes perderlos.</p><h3>Controles</h3><p>En Ajustes puedes desactivar sonido, vibración y animaciones ambientales, o borrar tu progreso. La vibración depende de la compatibilidad del dispositivo.</p><h3>Versión de prueba</h3><p>Esta es una versión local de prueba. Antes de publicar en una tienda se debe añadir la identidad y el contacto del responsable de la aplicación a la política de privacidad y completar las declaraciones de la tienda.</p><button class="text-button" data-action="home">Volver al universo ${icon("arrow", 16)}</button></div>`;
 }
 function render() {
   game = null;
   paused = false;
   art = null;
-  root.innerHTML = `<div id="shell">${header()}<main>${discoveries(save)}${page === "play" ? home() : page === "worlds" ? worldsPage() : page === "journal" ? journal() + profilePage(save) : page === "forge" ? forgePage(save, draft, forgeSlot, forgeCategory, personalProfile) : page === "collection" ? collectionPage(save, collectionCategory) : page === "codes" ? codesPage(save, challengeCode) : page === "anomalies" ? anomalyPage(save) : page === "campaign" ? campaign() : privacy()}</main><footer><span>Hecho para encontrar tu ritmo.</span><button class="text-button" style="font-size:9px;padding:0;color:inherit" data-action="privacy">Sin conexión · Privacidad</button></footer></div>`;
+  root.innerHTML = `<div id="shell">${header()}<main>${!["play", "forge", "journal"].includes(page) ? `<button class="text-button back-control" data-action="back">← Volver</button>` : ""}${page !== "play" ? discoveries(save) : ""}${page === "play" ? home() : page === "worlds" ? worldsPage() : page === "journal" ? journal() + mobileJournal(save) + profilePage(save) : page === "forge" ? forgePage(save, draft, forgeSlot, forgeCategory, personalProfile) : page === "collection" ? collectionPage(save, collectionCategory) : page === "codes" ? codesPage(save, challengeCode) : page === "anomalies" ? anomalyPage(save) : page === "campaign" ? campaign() : privacy()}</main><footer><span>Hecho para encontrar tu ritmo.</span><button class="text-button" style="font-size:9px;padding:0;color:inherit" data-action="privacy">Sin conexión · Privacidad</button></footer></div>`;
   const canvas = root.querySelector<HTMLCanvasElement>("canvas");
   if (canvas) {
     art = new Art(canvas);
@@ -260,31 +265,7 @@ function closeModal() {
   previousFocus?.focus();
 }
 function settings() {
-  modal(
-    "settings",
-    `<div class="modal-head"><span class="eyebrow">A tu manera</span><button class="icon-button" data-action="close" aria-label="Cerrar ajustes">${icon("close", 18)}</button></div><h2>Encuentra tu ambiente.</h2>${(
-      [
-        { id: "sound", name: "Sonido", desc: "Notas suaves al recoger luz." },
-        {
-          id: "haptic",
-          name: "Vibración",
-          desc: "Una respuesta breve a cada toque.",
-        },
-        {
-          id: "motion",
-          name: "Animación ambiental",
-          desc: "Brillos y partículas. El juego sigue moviéndose.",
-        },
-      ] as const
-    )
-      .map(
-        (s) =>
-          `<div class="setting-row"><div><strong>${s.name}</strong><small>${s.desc}</small></div><button role="switch" aria-checked="${save[s.id]}" aria-label="${s.name}" data-action="toggle" data-setting="${s.id}" class="toggle ${save[s.id] ? "on" : ""}"></button></div>`,
-      )
-      .join(
-        "",
-      )}<div class="modal-actions"><button class="secondary" data-action="help">Entrenamiento · 30 segundos</button><button class="text-button" data-action="reset-confirm">Borrar progreso de este dispositivo</button></div><p class="tiny">Gameplay 0.3 · Tu progreso se guarda solo en este dispositivo.</p>`,
-  );
+  modal("settings", settingsContent(save));
 }
 function tutorial() {
   start("tutorial", 0);
@@ -315,14 +296,27 @@ function start(
       : context.kind === "anomaly"
         ? (() => {
             const q = anomaly(context.tier, randomSeed());
-            return new Game("voyage", q.seed, q);
+            return new Game("voyage", q.seed, {
+              ...q,
+              mobile: true,
+              assistance: save.mobile.assistance,
+            });
           })()
         : new Game(runMode, randomSeed(), {
-            world: context.kind === "personal" ? personalProfile : save.world,
+            mobile: true,
+            assistance: save.mobile.assistance,
+            journey: context.kind === "normal" && runMode === "infinite",
+            world:
+              runMode === "infinite" && context.kind === "normal"
+                ? 0
+                : context.kind === "personal"
+                  ? personalProfile
+                  : save.world,
             level: context.kind === "personal" ? 0 : level,
             zenDuration,
             date: dailySeed(),
           });
+  game.config.assistance = save.mobile.assistance;
   sessionBest =
     context.kind === "personal"
       ? save.universe.personalBest[game.config.world]
@@ -334,26 +328,40 @@ function start(
           : bestFor(save, game);
   if (runMode === "daily") {
     markDailyPlayed(save, game.config.dailyDate);
+    const previous = save.mobile.daily.find(
+      (r) => r.date === game!.config.dailyDate,
+    );
+    save.mobile.daily = [
+      {
+        date: game.config.dailyDate,
+        attempts: (previous?.attempts ?? 0) + 1,
+        tier: previous?.tier ?? 0,
+        best: previous?.best ?? 0,
+        assisted: save.mobile.assistance,
+      },
+      ...save.mobile.daily.filter((r) => r.date !== game!.config.dailyDate),
+    ].slice(0, 31);
     persist();
   }
   paused = false;
   const g = game;
-  root.innerHTML = `<div class="game-shell"><div class="game-header"><span class="brand">${icon("orbit", 25)} ÓRBITA</span><span class="eyebrow" style="font-size:8px;letter-spacing:1px">${contextName()} · ${activeContext.kind === "personal" ? escape(draft.name) : worlds[g.config.world].name}</span><button class="icon-button" data-action="pause" aria-label="Pausar juego">${icon("pause", 18)}</button></div><div class="time-track"><i id="time-fill"></i></div><div class="game-hud"><div><div id="score" class="score-num">0</div><span class="hud-label">PUNTOS DE LUZ</span></div><div><div id="hearts" class="hearts">${g.gentle ? "∞" : "●●●"}</div><span class="hud-label" style="text-align:center">${g.gentle ? "A TU RITMO" : "ESCUDOS"}</span></div><div><div id="timer" class="timer">${Number.isFinite(g.duration) ? g.duration : "0:00"}</div><span class="hud-label">${Number.isFinite(g.duration) ? "RESTANTES" : "EXPLORANDO"}</span></div></div><div class="record-bar"><span id="record-best">${sessionBest ? `MEJOR ${fmt(sessionBest)}` : "TU PRIMERA MARCA"}</span><span id="record-delta"></span></div><div class="objective-bar" id="objective"></div><div class="arena-wrap"><canvas class="game-canvas" aria-label="Arena orbital. Toca para cambiar de camino." role="img"></canvas><div class="arena-label" id="feedback">SIGUE LOS DIAMANTES DORADOS</div></div><div class="game-bottom"><div class="orbit-controls">${g.config.orbits.length > 2 ? `<button class="secondary previous-orbit" data-action="switch-back" aria-label="Órbita anterior">${icon("arrow", 20)}</button>` : ""}<button class="primary" data-action="switch">${icon("switch", 20)} ${g.config.orbits.length > 2 ? "Siguiente órbita" : "Cambiar de órbita"}</button></div><p id="travel-guide">${g.config.orbits.length > 2 ? "Avanza al siguiente camino o usa la flecha para volver." : "Un toque cambia de camino. Tu viajero avanza solo."}</p></div></div>`;
+  root.innerHTML = `<div class="game-shell"><div class="game-header"><span class="brand">${icon("orbit", 25)} ÓRBITA</span><span id="destination-name" class="eyebrow" style="font-size:8px;letter-spacing:1px">${contextName()} · ${activeContext.kind === "personal" ? escape(draft.name) : worlds[g.config.world].name}</span><button class="icon-button" data-action="pause" aria-label="Pausar juego">${icon("pause", 18)}</button></div><div class="time-track"><i id="time-fill"></i></div><div class="game-hud"><div><div id="score" class="score-num">0</div><span class="hud-label">PUNTOS DE LUZ</span></div><div><div id="hearts" class="hearts">${g.gentle ? "∞" : "●●●"}</div><span class="hud-label" style="text-align:center">${g.gentle ? "A TU RITMO" : "ESCUDOS"}</span></div><div><div id="timer" class="timer">${Number.isFinite(g.duration) ? g.duration : "0:00"}</div><span class="hud-label">${Number.isFinite(g.duration) ? "RESTANTES" : "EXPLORANDO"}</span></div></div><div class="record-bar"><span id="record-best">${sessionBest ? `MEJOR ${fmt(sessionBest)}` : "TU PRIMERA MARCA"}</span><span id="record-delta"></span></div><div class="objective-bar" id="objective"></div><div class="arena-wrap"><canvas class="game-canvas" aria-label="Arena orbital. Desliza hacia fuera o hacia el planeta." role="img"></canvas><div class="arena-label" id="feedback">SIGUE LOS DIAMANTES DORADOS</div></div><div class="game-bottom"><p class="radial-hint">Desliza hacia fuera o hacia el planeta.</p><div class="orbit-controls"><button class="secondary" data-action="switch-back" aria-label="Órbita interior">↓ Dentro</button><button class="primary" data-action="switch" aria-label="Órbita exterior">↑ Fuera</button></div><p id="travel-guide">Cada gesto cambia un camino. Los extremos no se conectan.</p></div></div>`;
   art = new Art(root.querySelector("canvas")!);
   art.world = g.config.world;
   if (context.kind === "personal") art.custom = structuredClone(draft.design);
   preferences();
   sound.init();
   last = performance.now();
-  root.querySelector("canvas")!.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    switchOrbit();
-  });
+  bindRadial(
+    root.querySelector("canvas")!,
+    switchOrbit,
+    () => save.mobile.controls === "classic",
+  );
   updateHud();
 }
 function switchOrbit(delta = 1) {
   if (!game || paused || game.done) return;
-  if (!game.switch(delta)) return;
+  if (!game.move(delta)) return;
   sound.switch();
   if (save.haptic && Capacitor.isNativePlatform())
     void Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
@@ -361,6 +369,7 @@ function switchOrbit(delta = 1) {
 function pause() {
   if (!game || game.done) return;
   paused = true;
+  sound.pause();
   const calm = game.mode === "zen";
   modal(
     "pause",
@@ -378,7 +387,7 @@ function finish() {
   if (g.mode === "tutorial") {
     modal(
       "result",
-      `<span class="eyebrow">Entrenamiento independiente</span><h2>${g.outcome === "cleared" ? "Ya conoces el camino." : "Prueba un pequeño cambio."}</h2><p>${g.outcome === "cleared" ? "Cambiaste de órbita y recogiste luz. Los diamantes suman puntos; los fragmentos coral consumen escudos. Cada 5 luces seguidas aumenta tu multiplicador." : "Toca para cambiar de órbita y recoge al menos una luz antes de terminar. Puedes repetir sin perder nada."}</p><p>El entrenamiento no da recursos por repetición. Su primer hito puede descubrir piezas y conceder una recompensa única.</p>${r.discoveries.map((t) => `<div class="new-milestone">${t}</div>`).join("")}${discoveries(save)}<div class="modal-actions"><button class="primary" data-action="campaign">Elegir una expedición ${icon("arrow")}</button><button class="secondary" data-action="training">Repetir entrenamiento</button></div>`,
+      `<span class="eyebrow">Entrenamiento independiente</span><h2>${g.outcome === "cleared" ? "Ya conoces el camino." : "Prueba un pequeño cambio."}</h2><p>${g.outcome === "cleared" ? "Cambiaste de órbita y recogiste luz. Los diamantes suman puntos; los fragmentos coral consumen escudos. Cada 5 luces seguidas aumenta tu multiplicador." : "Desliza hacia fuera o dentro y recoge al menos una luz antes de terminar. Puedes repetir sin perder nada."}</p><p>El entrenamiento no da recursos por repetición. Su primer hito puede descubrir piezas y conceder una recompensa única.</p>${r.discoveries.map((t) => `<div class="new-milestone">${t}</div>`).join("")}${discoveries(save)}<div class="modal-actions"><button class="primary" data-action="campaign">Elegir una expedición ${icon("arrow")}</button><button class="secondary" data-action="training">Repetir entrenamiento</button></div>`,
     );
     return;
   }
@@ -392,7 +401,7 @@ function finish() {
     g.config.level < 2;
   modal(
     "result",
-    `<span class="eyebrow">${g.mode === "zen" ? "Tu pausa, a tu manera" : comparable && delta > 0 ? "Una nueva mejor marca" : cleared ? "Objetivo cumplido" : "El viaje continúa"}</span><h2>${g.mode === "zen" ? "Un momento para ti." : cleared ? "Expedición superada." : g.mode === "infinite" ? "Así de lejos llegaste." : g.lives <= 0 ? "Un camino por dominar." : "Faltó un poco de luz."}</h2><div class="result-score">${fmt(g.score)}</div><p>${contextName()} · ${worlds[g.config.world].name}${g.mode === "voyage" ? ` · ${g.config.level + 1}/3` : ""}</p>${comparable ? `<div class="score-comparison"><span>Anterior: ${fmt(r.previous)}</span><strong>${delta >= 0 ? "+" : ""}${fmt(delta)} puntos</strong></div>` : ""}<div class="result-details"><div><b>+${r.earned + r.bonus}</b><span>fragmentos ganados</span></div><div><b>${g.bestCombo}</b><span>mejor cadena</span></div><div><b>${Math.floor(g.time)} s</b><span>explorando</span></div></div>${r.bonus ? `<div class="new-world">Bonificación del viaje: +${r.bonus} fragmentos extra.</div>` : ""}${r.unlocked.map((i) => `<div class="new-world">${icon("leaf", 18)} Nuevo mundo: ${worlds[i].name}</div>`).join("")}<p>${g.mode === "zen" ? "Cada 4 luces aportan un fragmento, hasta 6 por minuto. Lo guardado durante la sesión ya está incluido." : g.mode === "infinite" ? "Cada intento dibuja un camino nuevo. Tu mejor marca queda contigo." : `Objetivo: ${g.lights}/${g.config.targetLights} luces · ${Math.floor(g.time)}/${g.duration} s. ${cleared ? "La próxima expedición te espera." : "Sobrevive y reúne la luz indicada para superarlo."}`}</p>${r.discoveries.map((t) => `<div class="new-milestone">${t}</div>`).join("")}${discoveries(save)}${activeContext.kind === "code" ? `<p class="tiny">Este reto no entrega fragmentos ni modifica la campaña.</p><textarea class="share-result" aria-label="Resumen para compartir" readonly>${escape(resultText(activeContext.code, g))}</textarea><button class="secondary" data-action="share-result">Copiar resultado</button>` : ""}<div class="modal-actions">${next ? `<button class="primary" data-action="next-level">Siguiente expedición ${icon("arrow")}</button>` : ""}<button class="${next ? "secondary" : "primary"}" data-action="replay">${g.mode === "daily" ? "Otro intento del reto" : "Volver a viajar"} ${icon("arrow")}</button><button class="secondary" data-action="${g.mode === "voyage" ? "campaign" : "result-home"}">${g.mode === "voyage" ? "Ver campaña" : "Volver a mi universo"}</button></div>`,
+    `<span class="eyebrow">${g.mode === "zen" ? "Tu pausa, a tu manera" : comparable && delta > 0 ? "Una nueva mejor marca" : cleared ? "Objetivo cumplido" : "El viaje continúa"}</span><h2>${g.mode === "zen" ? "Un momento para ti." : cleared ? "Expedición superada." : g.mode === "infinite" ? "Así de lejos llegaste." : g.lives <= 0 ? "Un camino por dominar." : "Faltó un poco de luz."}</h2><div class="result-score">${fmt(g.score)}</div><p>${contextName()} · ${worlds[g.config.world].name}${g.mode === "voyage" ? ` · ${g.config.level + 1}/3` : ""}</p>${comparable ? `<div class="score-comparison"><span>Anterior: ${fmt(r.previous)}</span><strong>${delta >= 0 ? "+" : ""}${fmt(delta)} puntos</strong></div>` : ""}<div class="result-details"><div><b>+${r.earned + r.bonus}</b><span>fragmentos ganados</span></div><div><b>${g.bestCombo}</b><span>mejor cadena</span></div><div><b>${Math.floor(g.time)} s</b><span>explorando</span></div></div>${r.bonus ? `<div class="new-world">Bonificación del viaje: +${r.bonus} fragmentos extra.</div>` : ""}${r.unlocked.map((i) => `<div class="new-world">${icon("leaf", 18)} Nuevo mundo: ${worlds[i].name}</div>`).join("")}<p>${g.mode === "zen" ? "Cada 4 luces aportan un fragmento, hasta 6 por minuto. Lo guardado durante la sesión ya está incluido." : g.mode === "infinite" ? "Cada intento dibuja un camino nuevo. Tu mejor marca queda contigo." : `Objetivo: ${g.lights}/${g.config.targetLights} luces · ${Math.floor(g.time)}/${g.duration} s. ${cleared ? "La próxima expedición te espera." : "Sobrevive y reúne la luz indicada para superarlo."}`}</p>${g.config.dailyTiers ? `<div class="daily-result"><strong>${["Señal", "Estelar", "Cósmica"][Math.max(0, g.config.dailyTiers.filter((t) => g.lights >= t).length - 1)]} · ${g.outcome === "cleared" ? g.config.dailyTiers.filter((t) => g.lights >= t).length : 0}/3</strong><p>${g.config.dailyTiers.map((t, i) => ["Señal", "Estelar", "Cósmica"][i] + ": " + t + " luces").join(" · ")}</p></div>` : ""}${g.config.assistance ? `<p class="tiny">Partida asistida · 50% de fragmentos.</p>` : ""}${r.discoveries.map((t) => `<div class="new-milestone">${t}</div>`).join("")}${discoveries(save)}${activeContext.kind === "code" ? `<p class="tiny">Este reto no entrega fragmentos ni modifica la campaña.</p><textarea class="share-result" aria-label="Resumen para compartir" readonly>${escape(resultText(activeContext.code, g))}</textarea><button class="secondary" data-action="share-result">Copiar resultado</button>` : ""}<div class="modal-actions">${next ? `<button class="primary" data-action="next-level">Siguiente expedición ${icon("arrow")}</button>` : ""}<button class="${next ? "secondary" : "primary"}" data-action="replay">${g.mode === "daily" ? "Otro intento del reto" : "Volver a viajar"} ${icon("arrow")}</button><button class="secondary" data-action="${g.mode === "voyage" ? "campaign" : "result-home"}">${g.mode === "voyage" ? "Ver campaña" : "Volver a mi universo"}</button></div>`,
   );
 }
 function updateHud() {
@@ -424,7 +433,8 @@ function updateHud() {
       : g.mode === "zen"
         ? `${g.lights} luces · ${earnedFragments(g)} fragmentos · Sin derrota`
         : "";
-  if (g.reversalWarning) objective = "EL GIRO ESTÁ POR CAMBIAR · PREPÁRATE";
+  if (g.reversalWarning && g.config.assistance)
+    objective = "EL GIRO ESTÁ POR CAMBIAR · PREPÁRATE";
   if (g.mode === "tutorial") {
     const steps =
       g.time < 6
@@ -434,8 +444,8 @@ function updateHud() {
           ]
         : g.time < 13
           ? [
-              "2/4 · Toca para cambiar de órbita.",
-              "Sigue los diamantes dorados: cada luz suma puntos.",
+              "2/4 · Desliza hacia fuera o hacia dentro.",
+              "Aleja el dedo del planeta para salir. Acércalo para entrar.",
             ]
           : g.time < 22
             ? [
@@ -449,7 +459,28 @@ function updateHud() {
     objective = steps[0];
     document.getElementById("travel-guide")!.textContent = steps[1];
   }
-  document.getElementById("objective")!.textContent = objective;
+  if (g.config.dailyTiers)
+    objective =
+      g.config.dailyTiers
+        .map((t, i) => ["Señal", "Estelar", "Cósmica"][i] + " " + t)
+        .join(" · ") +
+      " luces | " +
+      g.lights;
+  if (g.transitionUntil > g.time)
+    objective = "PRÓXIMO DESTINO · " + Math.ceil(g.transitionUntil - g.time);
+  document.getElementById("destination-name")!.textContent =
+    contextName() +
+    " · " +
+    (activeContext.kind === "personal"
+      ? draft.name
+      : worlds[g.config.world].name);
+  document.getElementById("objective")!.textContent =
+    objective + (g.config.assistance ? " · Asistencia · 50% fragmentos" : "");
+  root.querySelector<HTMLButtonElement>(
+    '[data-action="switch-back"]',
+  )!.disabled = g.lane === 0;
+  root.querySelector<HTMLButtonElement>('[data-action="switch"]')!.disabled =
+    g.lane === g.config.orbits.length - 1;
 }
 
 function commitPlanet() {
@@ -502,6 +533,10 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => {
   const input = e.target as HTMLSelectElement;
+  if (input.id === "control-setting") {
+    save.mobile.controls = input.value === "classic" ? "classic" : "radial";
+    persist();
+  }
   if (input.id === "personal-profile") {
     const value = Number(input.value);
     if (save.unlockedWorlds[value]) {
@@ -516,6 +551,64 @@ document.addEventListener("click", (e) => {
   if (!b) return;
   const action = b.dataset.action;
   switch (action) {
+    case "continue": {
+      const next = continuation(save);
+      if (next.complete) {
+        page = "anomalies";
+        render();
+      } else {
+        save.world = next.world;
+        selectedLevel = next.level;
+        persist();
+        start("voyage", selectedLevel);
+      }
+      break;
+    }
+    case "mobile-daily":
+      mode = "daily";
+      start("daily");
+      break;
+    case "mobile-infinite":
+      mode = "infinite";
+      start("infinite", 0);
+      break;
+    case "mobile-calm":
+      mode = "zen";
+      modal(
+        "calm",
+        '<h2>Un momento para ti.</h2><p>Sin derrota. Elige cuánto quieres viajar.</p><div class="modal-actions">' +
+          [
+            [60, "1 minuto"],
+            [180, "3 minutos"],
+            [0, "Sin límite"],
+          ]
+            .map(
+              ([value, label]) =>
+                '<button class="secondary" data-action="calm-start" data-duration="' +
+                value +
+                '">' +
+                label +
+                "</button>",
+            )
+            .join("") +
+          '<button class="text-button" data-action="close">← Volver</button></div>',
+      );
+      break;
+    case "calm-start":
+      zenDuration = Number(b.dataset.duration) as 60 | 180 | 0;
+      start("zen");
+      break;
+    case "back":
+      closeModal();
+      page = page === "collection" ? "forge" : "play";
+      render();
+      break;
+    case "data-settings":
+      modal(
+        "data",
+        '<h2>Tu progreso.</h2><p>Android puede respaldar únicamente el progreso y los ajustes mediante su servicio de copia del dispositivo. Su disponibilidad depende del sistema y de tu configuración; no es una cuenta de Órbita.</p><p>En este teléfono mantenemos además una copia local anterior. Desinstalar puede borrar datos si Android no los restaura.</p><div class="modal-actions"><button class="secondary" data-action="settings">← Ajustes</button><button class="text-button" data-action="reset-confirm">Restablecer progreso</button></div>',
+      );
+      break;
     case "open-forge":
       closeModal();
       page = "forge";
@@ -524,6 +617,8 @@ document.addEventListener("click", (e) => {
       persist();
       break;
     case "open-collection":
+      save.universe.pending = [];
+      persist();
       closeModal();
       page = "collection";
       render();
@@ -609,11 +704,8 @@ document.addEventListener("click", (e) => {
     }
     case "code-play":
       try {
-        challengeCode = encodeChallenge(
-          decodeChallenge(
-            (document.getElementById("challenge-code") as HTMLInputElement)
-              .value,
-          ),
+        challengeCode = canonicalChallenge(
+          (document.getElementById("challenge-code") as HTMLInputElement).value,
         );
         start("voyage", 0, { kind: "code", code: challengeCode });
       } catch (e) {
@@ -622,11 +714,8 @@ document.addEventListener("click", (e) => {
       break;
     case "code-copy":
       try {
-        const code = encodeChallenge(
-          decodeChallenge(
-            (document.getElementById("challenge-code") as HTMLInputElement)
-              .value,
-          ),
+        const code = canonicalChallenge(
+          (document.getElementById("challenge-code") as HTMLInputElement).value,
         );
         void copyText(code);
       } catch (e) {
@@ -690,15 +779,18 @@ document.addEventListener("click", (e) => {
       closeModal();
       break;
     case "toggle": {
-      const key = b.dataset.setting as "sound" | "haptic" | "motion";
-      save[key] = !save[key];
+      const key = b.dataset.setting!;
+      if (["music", "effects", "assistance"].includes(key)) {
+        const k = key as "music" | "effects" | "assistance";
+        save.mobile[k] = !save.mobile[k];
+      } else {
+        const k = key as "haptic" | "motion";
+        save[k] = !save[k];
+      }
       persist();
       preferences();
       settings();
-      if (key === "sound" && save.sound) {
-        sound.init();
-        sound.note(523);
-      }
+      if (save.mobile.music || save.mobile.effects) sound.init();
       break;
     }
     case "play":
@@ -738,7 +830,7 @@ document.addEventListener("click", (e) => {
     case "guide":
       modal(
         "guide",
-        `<span class="eyebrow">Recuerda el camino</span><h2>Lee. Decide. Cambia.</h2><p>Recoge diamantes dorados. Evita fragmentos coral y tramos rotos. El botón grande avanza una órbita; con tres caminos, la flecha permite volver. Cada cinco luces seguidas sube el multiplicador. Perder una luz rompe la cadena; un impacto consume un escudo fuera de Calma.</p><button class="primary" data-action="resume">Seguir el viaje</button>`,
+        `<span class="eyebrow">Recuerda el camino</span><h2>Lee. Decide. Cambia.</h2><p>Recoge diamantes dorados. Evita fragmentos coral y tramos rotos. Desliza alejándote del planeta para salir una órbita, o acercándote para entrar. También puedes usar Dentro y Fuera; los extremos no se conectan. Cada cinco luces seguidas sube el multiplicador. Perder una luz rompe la cadena; un impacto consume un escudo fuera de Calma.</p><button class="primary" data-action="resume">Seguir el viaje</button>`,
       );
       break;
     case "help":
@@ -773,6 +865,7 @@ document.addEventListener("click", (e) => {
           break;
         }
         save = reset;
+        persistNative(save, true);
         selectedLevel = 0;
         forgeSlot = 0;
         personalProfile = 0;
@@ -833,7 +926,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
     if (game && !game.done && !paused) pause();
     void sound.ctx?.suspend();
-  } else if (save.sound) void sound.ctx?.resume();
+  } else if (save.mobile.music || save.mobile.effects) void sound.ctx?.resume();
 });
 if (Capacitor.isNativePlatform()) {
   void App.addListener("appStateChange", ({ isActive }) => {
@@ -842,6 +935,12 @@ if (Capacitor.isNativePlatform()) {
   void App.addListener("backButton", () => {
     if (game && !game.done) {
       if (!paused) pause();
+      else if (modalKind === "pause") {
+        closeModal();
+        paused = false;
+        last = performance.now();
+        sound.init();
+      } else pause();
       return;
     }
     if (game?.done) {
@@ -855,7 +954,7 @@ if (Capacitor.isNativePlatform()) {
       return;
     }
     if (page !== "play") {
-      page = "play";
+      page = page === "collection" ? "forge" : "play";
       render();
       return;
     }
@@ -867,6 +966,10 @@ function frame(now: number) {
   last = now;
   if (game && !paused && !game.done) {
     game.update(dt);
+    if (art && art.world !== game.config.world) {
+      art.world = game.config.world;
+      art.layerKey = "";
+    }
     hudElapsed += dt;
     for (const event of game.events) {
       if (event.type === "collect") {
@@ -909,15 +1012,66 @@ function frame(now: number) {
     }
     if (game.done) finish();
   }
+  if (game)
+    sound.tick(
+      game.config.world,
+      game.intensity.phase,
+      game.combo,
+      game.gentle,
+      !paused && !game.done && !document.hidden,
+    );
+  else sound.pause();
   if (!document.hidden)
     art?.draw(now / 1000, game, paused ? 0 : Math.min(dt, 0.1));
   requestAnimationFrame(frame);
 }
 
-discover(save);
-persist();
-render();
-requestAnimationFrame(frame);
+window.addEventListener("orbita-storage-error", () =>
+  toast(
+    "No se pudo actualizar el respaldo nativo. Conservamos el guardado web local.",
+  ),
+);
+void (async () => {
+  save = await hydrateNative();
+  selectedLevel = nextLevel(save, save.world);
+  forgeSlot = save.universe.selected;
+  personalProfile = save.world;
+  draft = structuredClone(
+    save.universe.planets[forgeSlot] ?? {
+      name: "Mi pequeño mundo",
+      design: defaultDesign(),
+    },
+  );
+  discover(save);
+  persist();
+  render();
+  if (nativeDebug || import.meta.env.DEV || location.search.includes("qa=031"))
+    Object.defineProperty(window, "__orbitaDiagnostics", {
+      get: () =>
+        game
+          ? {
+              time: game.time,
+              score: game.score,
+              lane: game.lane,
+              radiusLane: game.radiusLane,
+              world: game.config.world,
+              destination: game.destination,
+              transition: game.transitionUntil,
+              mode: game.mode,
+              done: game.done,
+              lives: game.lives,
+              angle: game.angle,
+              direction: game.direction,
+              speed: game.speed,
+              items: game.items,
+              orbits: game.config.orbits,
+              assistance: game.config.assistance,
+              music: sound.diagnostics,
+            }
+          : null,
+    });
+  requestAnimationFrame(frame);
+})();
 if (
   import.meta.env.PROD &&
   !Capacitor.isNativePlatform() &&

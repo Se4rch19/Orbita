@@ -1,5 +1,6 @@
 import {
   sessionConfig,
+  journeyDestination,
   difficulty,
   type Mode,
   type SessionOptions,
@@ -29,6 +30,7 @@ export type GameEvent = {
   lane: number;
   amount: number;
 };
+import { boundedLane, INPUT_COOLDOWN } from "./input.ts";
 const STEP = 1 / 120;
 export class Game {
   seed: number;
@@ -36,6 +38,9 @@ export class Game {
   config: SessionConfig;
   rng: () => number;
   generator: PatternGenerator;
+  destination = 0;
+  sectionStart = 0;
+  transitionUntil = 0;
   time = 0;
   duration: number;
   angle = -Math.PI / 2;
@@ -73,7 +78,7 @@ export class Game {
       this.config.world,
       this.config.level,
       this.config.ruleSeed,
-      GENERATION_VERSION,
+      this.config.mobile ? 3 : GENERATION_VERSION,
     );
     this.rng = random(generationSeed);
     this.generator = new PatternGenerator(this.config, generationSeed);
@@ -102,7 +107,7 @@ export class Game {
       d = difficulty(this.config, this.time);
     return (
       Math.min(
-        2.4,
+        this.config.mobile ? 2.8 : 2.4,
         (o.baseSpeed * o.speedMultiplier * d.speedMultiplier) /
           pathMetric(o, this.angle),
       ) *
@@ -119,7 +124,23 @@ export class Game {
   get objectiveMet() {
     return this.lights >= this.config.targetLights;
   }
+  move(delta: number) {
+    if (this.done || this.cooldown > 0 || this.transitionUntil > this.time)
+      return false;
+    const next = boundedLane(
+      this.lane,
+      delta,
+      this.config.orbits.map((o) => o.active),
+    );
+    if (next === this.lane) return false;
+    this.lane = next;
+    this.switches++;
+    this.cooldown = INPUT_COOLDOWN;
+    return true;
+  }
+  // Legacy cyclic input remains only for old rule tests/replays. All UI uses move().
   switch(delta = 1) {
+    if (this.config.mobile) return this.move(delta);
     if (
       this.done ||
       this.cooldown > 0 ||
@@ -212,7 +233,7 @@ export class Game {
         });
       }
       const spacing =
-        Math.max(gate.spacing, this.peakSpeed * 0.78) +
+        Math.max(gate.spacing, this.peakSpeed * this.intensity.minReaction) +
         (this.config.structural ? 0.35 : 0);
       this.nextAngle += this.direction * spacing;
     }
@@ -257,6 +278,44 @@ export class Game {
   private step() {
     this.ticks++;
     this.time = Math.min(this.duration, this.ticks * STEP);
+    if (this.config.journey) {
+      if (!this.transitionUntil && this.time - this.sectionStart >= 50) {
+        this.transitionUntil = this.time + 3;
+        this.items = [];
+        this.combo = 0;
+      }
+      if (this.transitionUntil) {
+        if (this.time + 1e-8 < this.transitionUntil) return;
+        this.destination++;
+        const profile = journeyDestination(this.destination),
+          assist = this.config.assistance;
+        this.config = sessionConfig("infinite", {
+          ...profile,
+          mobile: true,
+          journey: true,
+          assistance: assist,
+        });
+        this.config.baseIntensity += Math.min(0.4, this.destination * 0.035);
+        this.sectionStart = this.time;
+        this.transitionUntil = 0;
+        this.lane = Math.min(this.lane, this.config.orbits.length - 1);
+        this.radiusLane = this.lane;
+        this.angle = -Math.PI / 2;
+        this.reversed = false;
+        this.direction = this.config.orbits[this.lane].direction;
+        this.velocity = this.targetVelocity;
+        this.generator = new PatternGenerator(
+          this.config,
+          hashSeed(this.seed, "destination", this.destination),
+        );
+        this.nextReverse = this.config.reversalEvery
+          ? this.time + this.config.reversalEvery
+          : Infinity;
+        this.nextAngle =
+          this.angle + this.direction * Math.max(1.2, this.peakSpeed * 0.9);
+        this.populate();
+      }
+    }
     if (this.time >= this.nextReverse) {
       this.reversed = !this.reversed;
       this.reversals++;
@@ -275,7 +334,8 @@ export class Game {
     const before = this.angle;
     this.angle += this.velocity * STEP;
     this.radiusLane +=
-      (this.lane - this.radiusLane) * (1 - Math.exp(-22 * STEP));
+      (this.lane - this.radiusLane) *
+      (1 - Math.exp(-(this.config.mobile ? 32 : 22) * STEP));
     this.invincible = Math.max(0, this.invincible - STEP);
     this.cooldown = Math.max(0, this.cooldown - STEP);
     for (const item of this.items) {

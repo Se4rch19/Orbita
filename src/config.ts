@@ -134,6 +134,10 @@ export const levelNames = [
   ["Encuentro de mundos", "A contracorriente", "El último giro"],
 ];
 export type SessionConfig = {
+  mobile?: boolean;
+  assistance?: boolean;
+  journey?: boolean;
+  dailyTiers?: number[];
   mode: Mode;
   world: number;
   level: number;
@@ -150,6 +154,9 @@ export type SessionConfig = {
   rewardRate: number;
 };
 export type SessionOptions = {
+  mobile?: boolean;
+  assistance?: boolean;
+  journey?: boolean;
   world?: number;
   level?: number;
   zenDuration?: 60 | 180 | 0;
@@ -188,6 +195,7 @@ export function sessionConfig(
   mode: Mode,
   options: SessionOptions = {},
 ): SessionConfig {
+  if (options.mobile) return mobileConfig(mode, options);
   const daily = dailyChallenge(options.date);
   const world =
     mode === "tutorial"
@@ -265,6 +273,7 @@ export function difficulty(config: SessionConfig, time: number) {
     ? 1
     : 1 +
       config.baseIntensity +
+      (config.mobile ? smooth * 0.22 : 0) +
       smooth * (config.mode === "infinite" ? 0.95 : 0.65) +
       (config.modifier === "Pulso veloz" ? 0.12 : 0);
   const complexity =
@@ -284,7 +293,7 @@ export function difficulty(config: SessionConfig, time: number) {
               (1 + complexity * 0.19 + (speedMultiplier - 1) * 0.7),
           );
   const maxSpeed = Math.min(
-    2.4,
+    config.mobile ? 2.8 : 2.4,
     (Math.max(...config.orbits.map((o) => o.baseSpeed * o.speedMultiplier)) *
       speedMultiplier) /
       (1 - config.orbits[0].geometry.deformation),
@@ -295,12 +304,104 @@ export function difficulty(config: SessionConfig, time: number) {
     complexity,
     hazardDensity,
     maxSpeed,
-    minReaction: 0.78,
+    minReaction:
+      config.mobile && !calm
+        ? config.level === 0 && config.world === 0
+          ? 0.72
+          : 0.56
+        : 0.78,
     spacing: Math.max(
       0.73,
-      maxSpeed * 0.78 + (config.orbits.length - 2) * 0.12,
+      maxSpeed *
+        (config.mobile && !calm
+          ? config.level === 0 && config.world === 0
+            ? 0.72
+            : 0.56
+          : 0.78) +
+        (config.orbits.length - 2) * 0.12,
     ),
     patternTier: calm ? 0 : Math.min(2, config.level + (time > 75 ? 1 : 0)),
     budget: 8 + smooth * 4,
   };
+}
+
+export const MOBILE_RULES = 3;
+export function mobileConfig(
+  mode: Mode,
+  options: SessionOptions = {},
+): SessionConfig {
+  const daily = mode === "daily" ? dailyMobile(options.date) : null;
+  const c = sessionConfig(daily ? "voyage" : mode, {
+    ...options,
+    mobile: false,
+    ...(daily ? { world: daily.world, level: daily.level } : {}),
+  });
+  c.mode = mode;
+  c.mobile = true;
+  c.assistance = options.assistance === true;
+  c.journey = options.journey === true && mode === "infinite";
+  if (c.orbits.length > 3)
+    throw new Error("Mobile gameplay supports at most three orbits");
+  if (mode !== "zen" && mode !== "tutorial")
+    c.baseIntensity += c.world * 0.02 + c.level * 0.085;
+  if (daily) {
+    c.duration = daily.duration;
+    c.dailyDate = daily.date;
+    c.dailyTiers = daily.tiers;
+    c.targetLights = daily.tiers[0];
+    c.ruleSeed = daily.ruleSeed;
+    c.modifier = daily.modifier;
+  }
+  return c;
+}
+export function dailyMobile(date = dailySeed()) {
+  const ruleSeed = hashSeed("orbita-daily", MOBILE_RULES, date),
+    rng = random(ruleSeed),
+    world = Math.floor(rng() * 5),
+    level = 1 + Math.floor(rng() * 2),
+    duration = [45, 60, 75][Math.floor(rng() * 3)],
+    modifier = ["Pulso veloz", "Luz en cadena", "Paso preciso"][
+      Math.floor(rng() * 3)
+    ];
+  const c = mobileConfig("voyage", { world, level });
+  c.duration = duration;
+  c.modifier = modifier;
+  const peak = difficulty(c, duration),
+    spacing =
+      Math.max(peak.spacing, peak.maxSpeed * peak.minReaction) +
+      (c.structural ? 0.35 : 0) +
+      0.1;
+  const meanBase =
+    c.orbits.reduce((a, o) => a + o.baseSpeed, 0) / c.orbits.length;
+  const averageSpeed = Math.min(
+    2.8,
+    meanBase *
+      (1 + c.baseIntensity + 0.435 + (modifier === "Pulso veloz" ? 0.12 : 0)),
+  );
+  const expected = Math.max(
+    12,
+    Math.floor(
+      ((duration * averageSpeed) / spacing - 2) *
+        (c.orbits.some((o) => o.direction < 0) ? 0.45 : 1),
+    ),
+  );
+  const tiers = [0.55, 0.73, 0.9].map((f) =>
+    Math.max(6, Math.floor(expected * f)),
+  );
+  return {
+    date,
+    ruleSeed,
+    world,
+    level,
+    duration,
+    modifier,
+    expected,
+    tiers,
+    targetLights: tiers[0],
+  };
+}
+export function journeyDestination(index: number) {
+  return index < 5
+    ? { world: index, level: Math.min(2, Math.floor(index / 2)) }
+    : { world: hashSeed("anomaly-world", index - 5) % 5, level: 2 };
 }
