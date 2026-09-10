@@ -11,4 +11,4 @@ if (-not $orbitaReady) {
     Start-Process -FilePath $orbitaNode -ArgumentList ('"{0}"' -f $orbitaServer) -WorkingDirectory $orbitaProject -WindowStyle Hidden
     Start-Sleep -Milliseconds 900
 }
-Start-Process 'http://localhost:4173/?v=0.3.1'
+Start-Process 'http://localhost:4173/?v=0.4.0'

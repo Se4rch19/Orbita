@@ -1,3 +1,4 @@
+import { t as message } from "./i18n.ts";
 import { dailySeed, GENERATION_VERSION, hashSeed, random } from "./random.ts";
 export type Mode = "voyage" | "zen" | "daily" | "infinite" | "tutorial";
 export type Geometry = {
@@ -38,9 +39,9 @@ export type World = {
 const circle: Geometry = { kind: "circle", deformation: 0, lobes: 0 };
 export const worlds: World[] = [
   {
-    name: "Menta",
-    subtitle: "Donde todo empieza",
-    mechanic: "Dos órbitas. Aprende a encontrar el paso libre.",
+    name: message("m_685d0edbbb"),
+    subtitle: message("m_760c96924c"),
+    mechanic: message("m_646d6e652f"),
     cost: 0,
     legacyCost: 0,
     color: "#83edce",
@@ -55,9 +56,9 @@ export const worlds: World[] = [
     moving: false,
   },
   {
-    name: "Durazno",
-    subtitle: "Un camino más",
-    mechanic: "Tres órbitas: la interior avanza más rápido.",
+    name: message("m_ab9dd65ab2"),
+    subtitle: message("m_57b55727f4"),
+    mechanic: message("m_c962829aba"),
     cost: 70,
     legacyCost: 80,
     color: "#ffc28d",
@@ -72,9 +73,9 @@ export const worlds: World[] = [
     moving: true,
   },
   {
-    name: "Lavanda",
-    subtitle: "La curva inesperada",
-    mechanic: "Órbitas triangulares suaves que cambian tu trayectoria.",
+    name: message("m_ab5899907d"),
+    subtitle: message("m_ddd4327764"),
+    mechanic: message("m_a31b404e74"),
     cost: 170,
     legacyCost: 200,
     color: "#c1afff",
@@ -89,9 +90,9 @@ export const worlds: World[] = [
     moving: false,
   },
   {
-    name: "Glaciar",
-    subtitle: "Lee el camino",
-    mechanic: "Los tramos rotos te obligan a buscar otra órbita.",
+    name: message("m_c9057be2f0"),
+    subtitle: message("m_89fcb09467"),
+    mechanic: message("m_ab47f85eb2"),
     cost: 300,
     legacyCost: 400,
     color: "#a1e5ff",
@@ -106,11 +107,11 @@ export const worlds: World[] = [
     moving: false,
   },
   {
-    name: "Eclipse",
+    name: message("m_45fc6c80b5"),
     directionFromLevel: 1,
     reversalByLevel: [0, 0, 20],
-    subtitle: "Todo entra en juego",
-    mechanic: "Tres caminos curvos, contragiros y fracturas anunciadas.",
+    subtitle: message("m_bdd42b7603"),
+    mechanic: message("m_6a9d50bb9c"),
     cost: 460,
     legacyCost: 700,
     color: "#ffe09a",
@@ -127,13 +128,14 @@ export const worlds: World[] = [
 ];
 export const LEVELS_PER_WORLD = 3;
 export const levelNames = [
-  ["Primer pulso", "Enlaza la luz", "El ritmo de Menta"],
-  ["Tercer camino", "Cruces de luz", "El paso interior"],
-  ["Curvas suaves", "Entre vértices", "El triángulo vivo"],
-  ["Primera fractura", "Puentes de hielo", "La ruta intacta"],
-  ["Encuentro de mundos", "A contracorriente", "El último giro"],
+  [message("m_0d80363240"), message("m_f3eafcb6d8"), message("m_4ceda6d581")],
+  [message("m_905063fac2"), message("m_ad9071b371"), message("m_41661cb76e")],
+  [message("m_275579c3b9"), message("m_154ee2881c"), message("m_2171afef81")],
+  [message("m_e932daff5b"), message("m_939288a137"), message("m_c1889e3727")],
+  [message("m_34d3a0da1d"), message("m_d43a9559e6"), message("m_467fb7691b")],
 ];
 export type SessionConfig = {
+  stream?: boolean;
   mobile?: boolean;
   assistance?: boolean;
   journey?: boolean;
@@ -154,6 +156,7 @@ export type SessionConfig = {
   rewardRate: number;
 };
 export type SessionOptions = {
+  stream?: boolean;
   mobile?: boolean;
   assistance?: boolean;
   journey?: boolean;
@@ -168,9 +171,11 @@ export function dailyChallenge(date = dailySeed()) {
   const world = Math.floor(rng() * worlds.length),
     level = Math.floor(rng() * 3),
     duration = [45, 60, 75][Math.floor(rng() * 3)];
-  const modifier = ["Pulso veloz", "Luz en cadena", "Paso preciso"][
-    Math.floor(rng() * 3)
-  ];
+  const modifier = [
+    message("m_6e3482b660"),
+    message("m_cbecce0fe9"),
+    message("m_89cc6c0e73"),
+  ][Math.floor(rng() * 3)];
   return {
     date,
     ruleSeed,
@@ -181,7 +186,7 @@ export function dailyChallenge(date = dailySeed()) {
     targetLights: Math.max(
       8,
       Math.round(
-        ((modifier === "Luz en cadena" ? 22 : 16) * duration) /
+        ((modifier === message("m_cbecce0fe9") ? 22 : 16) * duration) /
           60 /
           (1 +
             (worlds[world].speeds.length - 2) * 0.16 +
@@ -275,7 +280,7 @@ export function difficulty(config: SessionConfig, time: number) {
       config.baseIntensity +
       (config.mobile ? smooth * 0.22 : 0) +
       smooth * (config.mode === "infinite" ? 0.95 : 0.65) +
-      (config.modifier === "Pulso veloz" ? 0.12 : 0);
+      (config.modifier === message("m_6e3482b660") ? 0.12 : 0);
   const complexity =
     (config.orbits.length - 2) * 1.5 +
     (config.orbits[0].geometry.deformation ? 1.8 : 0) +
@@ -324,7 +329,6 @@ export function difficulty(config: SessionConfig, time: number) {
     budget: 8 + smooth * 4,
   };
 }
-
 export const MOBILE_RULES = 3;
 export function mobileConfig(
   mode: Mode,
@@ -338,10 +342,10 @@ export function mobileConfig(
   });
   c.mode = mode;
   c.mobile = true;
+  c.stream = options.stream === true;
   c.assistance = options.assistance === true;
   c.journey = options.journey === true && mode === "infinite";
-  if (c.orbits.length > 3)
-    throw new Error("Mobile gameplay supports at most three orbits");
+  if (c.orbits.length > 3) throw new Error(message("m_023e245a2f"));
   if (mode !== "zen" && mode !== "tutorial")
     c.baseIntensity += c.world * 0.02 + c.level * 0.085;
   if (daily) {
@@ -360,9 +364,11 @@ export function dailyMobile(date = dailySeed()) {
     world = Math.floor(rng() * 5),
     level = 1 + Math.floor(rng() * 2),
     duration = [45, 60, 75][Math.floor(rng() * 3)],
-    modifier = ["Pulso veloz", "Luz en cadena", "Paso preciso"][
-      Math.floor(rng() * 3)
-    ];
+    modifier = [
+      message("m_6e3482b660"),
+      message("m_cbecce0fe9"),
+      message("m_89cc6c0e73"),
+    ][Math.floor(rng() * 3)];
   const c = mobileConfig("voyage", { world, level });
   c.duration = duration;
   c.modifier = modifier;
@@ -376,7 +382,10 @@ export function dailyMobile(date = dailySeed()) {
   const averageSpeed = Math.min(
     2.8,
     meanBase *
-      (1 + c.baseIntensity + 0.435 + (modifier === "Pulso veloz" ? 0.12 : 0)),
+      (1 +
+        c.baseIntensity +
+        0.435 +
+        (modifier === message("m_6e3482b660") ? 0.12 : 0)),
   );
   const expected = Math.max(
     12,

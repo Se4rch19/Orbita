@@ -1,3 +1,4 @@
+import { normalizePresentation } from "./presentation-state.ts";
 import { normalize as legacyNormalize } from "./storage.ts";
 import {
   freshUniverse,
@@ -37,6 +38,10 @@ export function normalize3(value: unknown): Save {
       version: 3,
       universe: freshUniverse(),
       mobile: normalizeMobile(raw.mobile, base.sound),
+      presentation: normalizePresentation(
+        raw.presentation,
+        base.tutorial || base.runs > 0,
+      ),
     },
     u = s.universe;
   const daily = [s.daily, ...s.dailyHistory]
@@ -87,7 +92,10 @@ export function normalize3(value: unknown): Save {
         .filter((x) => x && typeof x === "object")
         .map((p) => ({
           name: safeName(p.name),
-          design: normalizeDesign(p.design, u.inventory),
+          design: normalizeDesign(p.design, [
+            ...u.inventory,
+            ...s.presentation.owned,
+          ]),
         }));
     u.selected = num(old.selected, Math.max(0, u.planets.length - 1));
     u.stats.created = Math.max(u.stats.created, u.planets.length);
