@@ -5,6 +5,7 @@ function pilot(g: Game) {
       .filter(
         (i) =>
           i.kind === "light" &&
+          i.life !== "queued" &&
           !i.passed &&
           (i.angle - g.angle) * g.direction > 0,
       )
@@ -20,7 +21,12 @@ function pilot(g: Game) {
         g.config.orbits[target].direction !== g.config.orbits[g.lane].direction
       ) {
         const blocked = g.items
-          .filter((i) => i.angle === next.angle && i.kind !== "light")
+          .filter(
+            (i) =>
+              i.life !== "queued" &&
+              i.angle === next.angle &&
+              i.kind !== "light",
+          )
           .map((i) => i.lane);
         target =
           g.config.orbits.find(
@@ -56,7 +62,11 @@ const results = [];
 for (let day = 1; day <= 30; day++) {
   const row = [];
   for (let seed = 0; seed < 10; seed++) {
-    const g = new Game("daily", seed, { date: 20260900 + day, mobile: true });
+    const g = new Game("daily", seed, {
+      date: 20260900 + day,
+      mobile: true,
+      stream: true,
+    });
     row.push({
       world: g.config.world,
       tiers: g.config.dailyTiers,
@@ -66,8 +76,11 @@ for (let day = 1; day <= 30; day++) {
   results.push({
     day,
     world: row[0].world,
-    tierTargets: new Game("daily", 0, { date: 20260900 + day, mobile: true })
-      .config.dailyTiers,
+    tierTargets: new Game("daily", 0, {
+      date: 20260900 + day,
+      mobile: true,
+      stream: true,
+    }).config.dailyTiers,
     lights: row.map((r) => r.lights),
     wins: row.filter((r) => r.cleared).length,
     tierWins: [0, 1, 2].map((i) => row.filter((r) => r.tiers?.[i]).length),

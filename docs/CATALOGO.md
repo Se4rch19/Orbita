@@ -1,4 +1,4 @@
-# Catálogo Órbita 0.3
+# Catálogo Órbita 0.4.0
 
 Generado desde `src/forge.ts`. Los costes son fragmentos ganados al jugar. «Automático» significa que la pieza se descubre al cumplir la condición, sin gasto.
 
@@ -55,3 +55,27 @@ Generado desde `src/forge.ts`. Los costes son fragmentos ganados al jugar. «Aut
 | Entre anomalías | Supera 3 anomalías | 30 |
 
 Total: 34 componentes, 8 fabricables con coste conjunto de 170 fragmentos. Diez hitos conceden 205 fragmentos en conjunto.
+
+## Extensión ambiental — 15 piezas, 3 categorías nuevas
+
+Se conservan las 34 piezas anteriores: 49 en total, distribuidas en diez dimensiones.
+
+| Categoría | Pieza | Condición | Coste |
+| --- | --- | --- | --- |
+| Bioma | Mar vivo | Desde el inicio | 0 fragmentos |
+| Bioma | Dunas solares | 35 fragmentos acumulados | 10 fragmentos |
+| Bioma | Jardín de cristal | Desbloquear Lavanda | 15 fragmentos |
+| Bioma | Mar congelado | 90 fragmentos acumulados | 15 fragmentos |
+| Bioma | Corazón de lava | Categoría 2 del reto diario | 20 fragmentos |
+| Bioma | Mundo dormido | Superar una anomalía | 20 fragmentos |
+| Espacio | Cielo limpio | Desde el inicio | 0 fragmentos |
+| Espacio | Cuna de estrellas | 60 fragmentos acumulados | 10 fragmentos |
+| Espacio | Aurora distante | 106 s en Infinito | 15 fragmentos |
+| Espacio | Silencio profundo | Desbloquear Eclipse | 20 fragmentos |
+| Relieve | Horizonte suave | Desde el inicio | 0 fragmentos |
+| Relieve | Archipiélago | 30 fragmentos acumulados | 8 fragmentos |
+| Relieve | Memoria de impactos | 50 fragmentos acumulados | 10 fragmentos |
+| Relieve | Luz interior | Categoría 1 del reto diario | 12 fragmentos |
+| Relieve | Ojo de tormenta | 53 s en Infinito | 12 fragmentos |
+
+Lava + superficie de hielo y bioma helado + superficie volcánica se rechazan. Islas requiere océano o mundo helado. Océano + hielo se dibuja como mar congelado. La validación se aplica al seleccionar piezas nuevas o antiguas y al cargar un diseño. El precio se paga una sola vez; no hay compras con dinero.

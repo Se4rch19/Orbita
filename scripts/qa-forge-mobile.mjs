@@ -3,7 +3,7 @@ import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { components } from "../src/forge.ts";
-const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.3.1/validation";
+const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.0/validation";
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch(),
   checks = [],
@@ -12,8 +12,39 @@ const browser = await chromium.launch(),
 try {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
+    locale: "es-MX",
     deviceScaleFactor: 2,
     permissions: ["clipboard-read", "clipboard-write"],
+  });
+  await context.addInitScript(() => {
+    if (!localStorage.getItem("orbita.v3"))
+      localStorage.setItem(
+        "orbita.v3",
+        JSON.stringify({
+          version: 3,
+          totalLights: 0,
+          motion: false,
+          presentation: {
+            version: 1,
+            tutorial: "skipped",
+            language: "es-MX",
+            launches: 1,
+            seen: [
+              "world-0",
+              "world-1",
+              "world-2",
+              "world-3",
+              "world-4",
+              "forge",
+              "daily",
+              "infinite",
+              "codes",
+              "anomalies",
+              "personal",
+            ],
+          },
+        }),
+      );
   });
   const page = await context.newPage();
   page.on("pageerror", (e) => errors.push(e.message));
@@ -21,7 +52,7 @@ try {
     if (!r.url().startsWith("http://localhost:4173/")) requests.push(r.url());
   });
   await page.clock.install();
-  await page.goto("http://localhost:4173/?qa=031");
+  await page.goto("http://localhost:4173/?qa=040");
   const action = (a) => page.locator(`[data-action="${a}"]`).first();
   const read = () =>
     page.evaluate(() => JSON.parse(localStorage.getItem("orbita.v3")));
@@ -189,7 +220,8 @@ try {
   await action("campaign").click();
   await page.getByRole("button", { name: /^FORJA/ }).click();
   await page.getByRole("button", { name: "Ajustes", exact: true }).click();
-  await page.getByRole("switch", { name: "Animación ambiental" }).click();
+  if ((await read()).motion)
+    await page.getByRole("switch", { name: "Animación ambiental" }).click();
   await page.getByRole("button", { name: "Cerrar ajustes" }).click();
   assert.equal((await read()).motion, false);
   checks.push("reduced-effects preference survives custom rendering");

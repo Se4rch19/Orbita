@@ -5,6 +5,7 @@ function pilot(g: Game) {
       .filter(
         (i) =>
           i.kind === "light" &&
+          i.life !== "queued" &&
           !i.passed &&
           (i.angle - g.angle) * g.direction > 0,
       )
@@ -20,7 +21,12 @@ function pilot(g: Game) {
         g.config.orbits[target].direction !== g.config.orbits[g.lane].direction
       ) {
         const blocked = g.items
-          .filter((i) => i.angle === next.angle && i.kind !== "light")
+          .filter(
+            (i) =>
+              i.life !== "queued" &&
+              i.angle === next.angle &&
+              i.kind !== "light",
+          )
           .map((i) => i.lane);
         target =
           g.config.orbits.find(
@@ -59,7 +65,7 @@ for (let world = 0; world < 5; world++)
       hits = 0;
     for (let seed = 0; seed < 30; seed++) {
       const result = pilot(
-        new Game("voyage", seed, { world, level, mobile: true }),
+        new Game("voyage", seed, { world, level, mobile: true, stream: true }),
       );
       wins += Number(result.cleared);
       lights += result.lights;
@@ -78,8 +84,13 @@ let dailyWins = 0;
 for (let day = 1; day <= 30; day++)
   for (let seed = 0; seed < 10; seed++)
     dailyWins += Number(
-      pilot(new Game("daily", seed, { date: 20260900 + day, mobile: true }))
-        .cleared,
+      pilot(
+        new Game("daily", seed, {
+          date: 20260900 + day,
+          mobile: true,
+          stream: true,
+        }),
+      ).cleared,
     );
 console.log(
   JSON.stringify(

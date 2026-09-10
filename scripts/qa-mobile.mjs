@@ -1,7 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
-const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.3.1/validation";
+const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.0/validation";
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch(),
   checks = [],
@@ -10,9 +10,40 @@ const browser = await chromium.launch(),
 try {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
+    locale: "es-MX",
     deviceScaleFactor: 2,
     isMobile: true,
     hasTouch: true,
+  });
+  await context.addInitScript(() => {
+    if (!localStorage.getItem("orbita.v3"))
+      localStorage.setItem(
+        "orbita.v3",
+        JSON.stringify({
+          version: 3,
+          totalLights: 0,
+          motion: false,
+          presentation: {
+            version: 1,
+            tutorial: "skipped",
+            language: "es-MX",
+            launches: 1,
+            seen: [
+              "world-0",
+              "world-1",
+              "world-2",
+              "world-3",
+              "world-4",
+              "forge",
+              "daily",
+              "infinite",
+              "codes",
+              "anomalies",
+              "personal",
+            ],
+          },
+        }),
+      );
   });
   const p = await context.newPage();
   p.on("pageerror", (e) => errors.push(e.message));
@@ -20,7 +51,7 @@ try {
     if (!r.url().startsWith("http://localhost:4173/")) external.push(r.url());
   });
   await p.clock.install();
-  await p.goto("http://localhost:4173/?qa=031");
+  await p.goto("http://localhost:4173/?qa=040");
   const a = (x) => p.locator(`[data-action="${x}"]`).first(),
     d = () => p.evaluate(() => window.__orbitaDiagnostics),
     read = () =>
@@ -50,6 +81,7 @@ try {
     "assistance off, separate audio/haptics, dedicated data settings",
   );
   await a("training").click();
+  await a("lesson-next").click();
   const r = await p.locator(".game-canvas").boundingBox(),
     cx = r.x + r.width / 2,
     cy = r.y + r.height / 2;
@@ -82,8 +114,7 @@ try {
   checks.push(
     "real pointer radial gestures, endpoints, microgesture and cancellation",
   );
-  await p.clock.fastForward(31000);
-  await expect(p.getByRole("dialog")).toBeVisible();
+  await a("lesson-skip").click();
   assert.equal((await read()).runs, 0);
   await a("campaign").click();
   await expect(
