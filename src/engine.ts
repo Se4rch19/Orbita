@@ -1,4 +1,12 @@
 import {
+  EntityPool,
+  spawnClearance,
+  revealEnvelope,
+  FORM_SECONDS,
+  type Life,
+  type Family,
+} from "./stream.ts";
+import {
   sessionConfig,
   journeyDestination,
   difficulty,
@@ -13,6 +21,16 @@ export { random, dailySeed } from "./random.ts";
 export { TAU } from "./geometry.ts";
 export type { Mode } from "./config.ts";
 export type Item = {
+  leadExtra?: number;
+  revealSpeed?: number;
+  revealDistance?: number;
+  renderOrbits?: import("./config.ts").Orbit[];
+  life?: Life;
+  family?: Family;
+  formedAt?: number;
+  retiredAt?: number;
+  collected?: boolean;
+  drift?: number;
   id: number;
   angle: number;
   lane: number;
@@ -54,6 +72,37 @@ export class Game {
   invincible = 0;
   done = false;
   items: Item[] = [];
+  pool = new EntityPool();
+  teaching = false;
+  teachingScene(hazard = false) {
+    if (this.mode !== "tutorial") return;
+    const first = !this.teaching;
+    this.teaching = true;
+    this.duration = Infinity;
+    for (const item of this.items) this.pool.retire(item, this.time);
+    if (first) {
+      for (const item of this.items) item.retiredAt = this.time - 1;
+      this.pool.update(this.items, this.time);
+    }
+    const angle = this.angle + this.direction * this.clearance;
+    if (hazard)
+      this.addItem({
+        id: this.serial++,
+        angle,
+        lane: this.lane,
+        kind: "hazard",
+        family: "shard",
+        passed: false,
+      });
+    this.addItem({
+      id: this.serial++,
+      angle,
+      lane: hazard ? 1 - this.lane : this.lane,
+      kind: "light",
+      family: "light",
+      passed: false,
+    });
+  }
   events: GameEvent[] = [];
   nextAngle = 0;
   serial = 0;
@@ -78,14 +127,29 @@ export class Game {
       this.config.world,
       this.config.level,
       this.config.ruleSeed,
-      this.config.mobile ? 3 : GENERATION_VERSION,
+      this.config.stream ? 4 : this.config.mobile ? 3 : GENERATION_VERSION,
     );
     this.rng = random(generationSeed);
     this.generator = new PatternGenerator(this.config, generationSeed);
     this.nextReverse = this.config.reversalEvery || Infinity;
     this.velocity = this.targetVelocity;
-    this.nextAngle = this.angle + Math.max(1.1, this.peakSpeed * 0.85);
+    this.nextAngle = this.angle + this.clearance;
     this.populate();
+  }
+  get clearance() {
+    return this.config.stream
+      ? spawnClearance(this.peakSpeed, this.intensity.minReaction)
+      : Math.max(1.1, this.peakSpeed * 0.85);
+  }
+  private addItem(item: Item) {
+    this.items.push(
+      this.config.stream
+        ? this.pool.acquire(
+            { ...item, renderOrbits: this.config.orbits },
+            this.time,
+          )
+        : item,
+    );
   }
   get gentle() {
     return this.mode === "zen" || this.mode === "tutorial";
@@ -173,7 +237,15 @@ export class Game {
   }
   private rebase(direction: 1 | -1) {
     this.direction = direction;
-    const clearance = this.peakSpeed * 0.85;
+    const clearance = this.config.stream
+      ? this.clearance
+      : this.peakSpeed * 0.85;
+    if (this.config.stream) {
+      for (const item of this.items) this.pool.retire(item, this.time);
+      this.nextAngle = this.angle + direction * clearance;
+      this.populate();
+      return;
+    }
     for (const item of this.items) {
       const ahead = mod((item.angle - this.angle) * direction);
       item.angle = this.angle + direction * ahead;
@@ -192,6 +264,7 @@ export class Game {
     this.populate();
   }
   populate() {
+    if (this.teaching) return;
     while ((this.nextAngle - this.angle) * this.direction < TAU - 0.35) {
       const gate = this.generator.next(this.time);
       let safe = gate.safeLane;
@@ -199,7 +272,8 @@ export class Game {
         safe =
           this.time < 5 ? 0 : this.time < 17 ? 1 : this.generator.count % 2;
       const angle = this.nextAngle;
-      this.items.push({
+      this.queueItem({
+        family: "light",
         id: this.serial++,
         angle,
         lane: safe,
@@ -219,23 +293,84 @@ export class Game {
           { length: this.config.orbits.length },
           (_, i) => i,
         ).find((i) => i !== safe && i !== lane);
-        this.items.push({
+        const arc =
+          this.config.stream &&
+          this.config.world === 2 &&
+          this.config.level > 0;
+        const comet =
+          this.config.stream &&
+          this.config.world === 4 &&
+          !gate.structural &&
+          !moving;
+        this.queueItem({
+          family: gate.structural
+            ? "fracture"
+            : arc
+              ? "arc"
+              : comet
+                ? "comet"
+                : moving
+                  ? "drifter"
+                  : "shard",
+          drift: comet ? -this.direction * 0.12 : 0,
           id: this.serial++,
           angle,
           lane,
-          kind: gate.structural ? "gap" : "hazard",
+          kind: gate.structural || arc ? "gap" : "hazard",
           passed: false,
-          width: gate.gapWidth,
+          width: arc ? 0.24 : gate.gapWidth,
           pattern: gate.pattern,
           ...(moving && other !== undefined
-            ? { fromLane: other, born: this.time, settleAt: this.time + 0.35 }
+            ? {
+                fromLane: other,
+                born: this.time,
+                settleAt: this.time + (this.config.stream ? 0.65 : 0.35),
+              }
             : {}),
         });
       }
       const spacing =
-        Math.max(gate.spacing, this.peakSpeed * this.intensity.minReaction) +
-        (this.config.structural ? 0.35 : 0);
+        Math.max(
+          gate.spacing,
+          (this.peakSpeed + (this.config.stream ? 0.12 : 0)) *
+            this.intensity.minReaction,
+        ) + (this.config.structural ? 0.35 : 0);
       this.nextAngle += this.direction * spacing;
+    }
+    this.revealQueued();
+  }
+  private queueItem(item: Item) {
+    this.addItem(item);
+    if (!this.config.stream) return;
+    const queued = this.items[this.items.length - 1];
+    queued.life = "queued";
+    // Some lights form a trail; others appear closer. Hazard lead times stay tight and varied.
+    queued.leadExtra =
+      item.kind === "light" && this.rng() < 0.45
+        ? 0.8 + this.rng() * 0.9
+        : this.rng() * (this.gentle ? 0.65 : 0.32);
+  }
+  private revealQueued() {
+    if (!this.config.stream) return;
+    for (const item of this.items) {
+      if (item.life !== "queued") continue;
+      const extra = item.leadExtra ?? 0,
+        reaction = this.intensity.minReaction;
+      const speed = difficulty(
+        this.config,
+        this.time + FORM_SECONDS + reaction + extra + 0.3,
+      ).maxSpeed;
+      const ahead = (item.angle - this.angle) * this.direction;
+      if (ahead > revealEnvelope(speed, reaction, extra, item.width ?? 0))
+        continue;
+      item.life = "forming";
+      item.formedAt = this.time;
+      item.revealSpeed = speed;
+      item.revealDistance = ahead;
+      if (item.fromLane !== undefined) {
+        item.born = this.time;
+        item.settleAt = this.time + 0.65;
+      }
     }
   }
   private hit(item: Item) {
@@ -278,10 +413,13 @@ export class Game {
   private step() {
     this.ticks++;
     this.time = Math.min(this.duration, this.ticks * STEP);
+    if (this.config.stream) this.pool.update(this.items, this.time);
     if (this.config.journey) {
       if (!this.transitionUntil && this.time - this.sectionStart >= 50) {
         this.transitionUntil = this.time + 3;
-        this.items = [];
+        if (this.config.stream)
+          for (const item of this.items) this.pool.retire(item, this.time);
+        else this.items = [];
         this.combo = 0;
       }
       if (this.transitionUntil) {
@@ -294,6 +432,7 @@ export class Game {
           mobile: true,
           journey: true,
           assistance: assist,
+          stream: this.config.stream,
         });
         this.config.baseIntensity += Math.min(0.4, this.destination * 0.035);
         this.sectionStart = this.time;
@@ -312,7 +451,11 @@ export class Game {
           ? this.time + this.config.reversalEvery
           : Infinity;
         this.nextAngle =
-          this.angle + this.direction * Math.max(1.2, this.peakSpeed * 0.9);
+          this.angle +
+          this.direction *
+            (this.config.stream
+              ? this.clearance
+              : Math.max(1.2, this.peakSpeed * 0.9));
         this.populate();
       }
     }
@@ -339,7 +482,9 @@ export class Game {
     this.invincible = Math.max(0, this.invincible - STEP);
     this.cooldown = Math.max(0, this.cooldown - STEP);
     for (const item of this.items) {
-      if (item.passed) continue;
+      if (item.passed || (item.life && item.life !== "active")) continue;
+      const driftStep = (item.drift ?? 0) * STEP;
+      item.angle += driftStep;
       if (item.kind === "gap") {
         const half = (item.width ?? 0.32) / 2;
         if (
@@ -349,13 +494,14 @@ export class Game {
           this.hit(item);
         if ((this.angle - item.angle) * this.direction > half)
           item.passed = true;
-      } else if (crossed(before, this.angle, item.angle)) {
+      } else if (crossed(before + driftStep, this.angle, item.angle)) {
         item.passed = true;
         if (Math.abs(this.radiusLane - this.itemLane(item)) < 0.43) {
           if (item.kind === "light") {
             const amount = 10 * this.multiplier;
             this.score += amount;
             this.lights++;
+            item.collected = true;
             this.combo++;
             this.bestCombo = Math.max(this.bestCombo, this.combo);
             this.events.push({
@@ -368,9 +514,14 @@ export class Game {
         } else if (item.kind === "light") this.combo = 0;
       }
     }
-    this.items = this.items.filter(
-      (i) => (i.angle - this.angle) * this.direction > -0.4,
-    );
+    if (this.config.stream) {
+      for (const item of this.items)
+        if (item.passed || (item.angle - this.angle) * this.direction < -0.4)
+          this.pool.retire(item, this.time);
+    } else
+      this.items = this.items.filter(
+        (i) => (i.angle - this.angle) * this.direction > -0.4,
+      );
     this.populate();
     if (this.lives <= 0 || this.time >= this.duration) this.end();
   }

@@ -1,0 +1,121 @@
+{
+  "version": 3,
+  "totalLights": 99,
+  "best": 260,
+  "legacyBest": 0,
+  "bestCombo": 11,
+  "runs": 5,
+  "completed": 0,
+  "world": 0,
+  "sound": true,
+  "haptic": true,
+  "motion": true,
+  "tutorial": true,
+  "infiniteBest": 0,
+  "unlockedWorlds": [true, false, false, false, false],
+  "campaign": [
+    { "cleared": [false, false, false], "best": [260, 0, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] }
+  ],
+  "daily": {
+    "date": 20260909,
+    "best": 90,
+    "played": true,
+    "completed": false,
+    "attempts": 1,
+    "rules": 2
+  },
+  "dailyHistory": [
+    {
+      "date": 20260909,
+      "best": 90,
+      "played": true,
+      "completed": false,
+      "attempts": 1,
+      "rules": 2
+    }
+  ],
+  "history": [
+    { "score": 260, "lights": 19, "mode": "voyage" },
+    { "score": 150, "lights": 15, "mode": "voyage" },
+    { "score": 150, "lights": 15, "mode": "voyage" },
+    { "score": 90, "lights": 9, "mode": "daily" },
+    { "score": 300, "lights": 6, "mode": "zen" }
+  ],
+  "universe": {
+    "inventory": [
+      "shape-circle",
+      "surface-garden",
+      "palette-mint",
+      "atmosphere-none",
+      "satellite-none",
+      "ring-none",
+      "orbit-thin",
+      "satellite-moon",
+      "shape-blob",
+      "atmosphere-halo",
+      "atmosphere-stars"
+    ],
+    "spent": 0,
+    "planets": [
+      {
+        "name": "Redmi · mi universo",
+        "design": {
+          "shape": "shape-circle",
+          "surface": "surface-garden",
+          "palette": "palette-mint",
+          "atmosphere": "atmosphere-none",
+          "satellite": "satellite-none",
+          "ring": "ring-none",
+          "orbit": "orbit-thin"
+        }
+      }
+    ],
+    "selected": 0,
+    "milestones": ["creator", "training", "chain"],
+    "pending": ["atmosphere-stars"],
+    "introduced": true,
+    "stats": {
+      "lights": 84,
+      "seconds": 160,
+      "infiniteSeconds": 0,
+      "dailyDates": [],
+      "cleanRuns": 0,
+      "created": 1
+    },
+    "personalBest": [0, 0, 0, 0, 0],
+    "challenges": [
+      { "code": "ORB-0403-0402-0000-006F-39BA", "best": 40, "combo": 4 }
+    ],
+    "anomalyTier": 0,
+    "anomalyBest": 0
+  },
+  "mobile": {
+    "version": 1,
+    "controls": "radial",
+    "assistance": false,
+    "music": true,
+    "effects": true,
+    "daily": [
+      {
+        "date": 20260909,
+        "attempts": 1,
+        "tier": 0,
+        "best": 90,
+        "assisted": false
+      }
+    ],
+    "journey": {
+      "score": 0,
+      "seconds": 0,
+      "worlds": 0,
+      "destination": 0,
+      "combo": 0
+    },
+    "lastRunAssisted": false,
+    "assistedBest": 0
+  }
+}

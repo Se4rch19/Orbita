@@ -1,13 +1,16 @@
+import { t as message } from "./i18n.ts";
+import { normalizeExtras } from "./environment.ts";
+import type { Presentation } from "./presentation-state.ts";
 import type { Save as BaseSave } from "./storage.ts";
 import type { Geometry } from "./config.ts";
 export const categories = {
-  shape: "Formas",
-  surface: "Superficies",
-  palette: "Paletas",
-  atmosphere: "Atmósferas",
-  satellite: "Satélites",
-  ring: "Anillos",
-  orbit: "Trazos orbitales",
+  shape: message("m_e96dcaa496"),
+  surface: message("m_6bc76fa462"),
+  palette: message("m_3367a7bf86"),
+  atmosphere: message("m_706a559be4"),
+  satellite: message("m_f6baf4bbd7"),
+  ring: message("m_ed8f8107a2"),
+  orbit: message("m_e296642704"),
 } as const;
 export type Category = keyof typeof categories;
 export type Condition = {
@@ -29,7 +32,7 @@ export type Component = {
   id: string;
   category: Category;
   name: string;
-  rarity: "Esencial" | "Singular" | "Cósmico";
+  rarity: string;
   condition: Condition;
   cost: number;
   visual: {
@@ -56,10 +59,10 @@ const c = (
   cost,
   rarity:
     condition.kind === "start"
-      ? "Esencial"
+      ? message("m_148d8804ae")
       : condition.kind === "campaign" || condition.kind === "anomaly"
-        ? "Cósmico"
-        : "Singular",
+        ? message("m_014e4caacc")
+        : message("m_bcdc153a9f"),
   performanceTier: category === "atmosphere" ? 1 : 0,
 });
 const start: Condition = { kind: "start", value: 0 };
@@ -71,14 +74,16 @@ const shape = (lobes: number, deformation: number): Geometry => ({
   deformation,
 });
 export const components: Component[] = [
-  c("shape", "shape-circle", "Semilla redonda", start, { shape: shape(0, 0) }),
-  c("shape", "shape-triangle", "Trébol suave", world(2), {
+  c("shape", "shape-circle", message("m_cc29e38faa"), start, {
+    shape: shape(0, 0),
+  }),
+  c("shape", "shape-triangle", message("m_cf08e0e9a9"), world(2), {
     shape: shape(3, 0.105),
   }),
   c(
     "shape",
     "shape-square",
-    "Diamante blando",
+    message("m_996cae5542"),
     fragments(80),
     { shape: shape(4, 0.08) },
     20,
@@ -86,7 +91,7 @@ export const components: Component[] = [
   c(
     "shape",
     "shape-pentagon",
-    "Cinco horizontes",
+    message("m_179c977874"),
     fragments(180),
     { shape: shape(5, 0.055) },
     30,
@@ -94,31 +99,35 @@ export const components: Component[] = [
   c(
     "shape",
     "shape-hexagon",
-    "Panal celeste",
+    message("m_37a9925144"),
     { kind: "campaign", value: 15 },
     { shape: shape(6, 0.04) },
   ),
   c(
     "shape",
     "shape-blob",
-    "Pequeña marea",
+    message("m_407891cae1"),
     { kind: "tutorial", value: 1 },
     { shape: shape(2, 0.13) },
   ),
-  c("surface", "surface-garden", "Jardín", start, { style: "garden" }),
+  c("surface", "surface-garden", message("m_11cbdd1dda"), start, {
+    style: "garden",
+  }),
   c(
     "surface",
     "surface-rock",
-    "Roca suave",
+    message("m_0fc8a24c72"),
     fragments(30),
     { style: "rock" },
     10,
   ),
-  c("surface", "surface-ice", "Cristal de hielo", world(3), { style: "ice" }),
+  c("surface", "surface-ice", message("m_939b849682"), world(3), {
+    style: "ice",
+  }),
   c(
     "surface",
     "surface-ocean",
-    "Océano",
+    message("m_dbb09449c2"),
     fragments(100),
     { style: "ocean" },
     20,
@@ -126,26 +135,26 @@ export const components: Component[] = [
   c(
     "surface",
     "surface-volcanic",
-    "Lava dormida",
+    message("m_28d5bc3200"),
     { kind: "clean", value: 1 },
     { style: "volcanic" },
   ),
-  c("surface", "surface-cosmic", "Noche profunda", world(4), {
+  c("surface", "surface-cosmic", message("m_f9e8d7332b"), world(4), {
     style: "cosmic",
   }),
-  c("palette", "palette-mint", "Menta", start, {
+  c("palette", "palette-mint", message("m_685d0edbbb"), start, {
     colors: ["#83edce", "#259d91"],
   }),
-  c("palette", "palette-peach", "Durazno", world(0), {
+  c("palette", "palette-peach", message("m_ab9dd65ab2"), world(0), {
     colors: ["#ffc2a7", "#b86c70"],
   }),
-  c("palette", "palette-lavender", "Lavanda", world(1), {
+  c("palette", "palette-lavender", message("m_ab5899907d"), world(1), {
     colors: ["#c7b5ff", "#7762aa"],
   }),
-  c("palette", "palette-ice", "Glaciar", world(2), {
+  c("palette", "palette-ice", message("m_c9057be2f0"), world(2), {
     colors: ["#a7e8ff", "#408fae"],
   }),
-  c("palette", "palette-eclipse", "Eclipse", world(3), {
+  c("palette", "palette-eclipse", message("m_45fc6c80b5"), world(3), {
     colors: ["#e1b6eb", "#79578b"],
   }),
   c(
@@ -155,7 +164,9 @@ export const components: Component[] = [
     { kind: "daily", value: 3 },
     { colors: ["#f7db9c", "#a77b53"] },
   ),
-  c("atmosphere", "atmosphere-none", "Cielo limpio", start, { style: "none" }),
+  c("atmosphere", "atmosphere-none", message("m_1ff8726964"), start, {
+    style: "none",
+  }),
   c(
     "atmosphere",
     "atmosphere-halo",
@@ -166,7 +177,7 @@ export const components: Component[] = [
   c(
     "atmosphere",
     "atmosphere-stars",
-    "Polvo estelar",
+    message("m_0dfe8daf33"),
     { kind: "combo", value: 10 },
     { style: "stars" },
   ),
@@ -177,21 +188,21 @@ export const components: Component[] = [
     { kind: "infinite", value: 90 },
     { style: "aurora" },
   ),
-  c("satellite", "satellite-none", "A solas", start, {
+  c("satellite", "satellite-none", message("m_63a8560e7d"), start, {
     count: 0,
     style: "moon",
   }),
   c(
     "satellite",
     "satellite-moon",
-    "Luna amiga",
+    message("m_21f1a1e832"),
     { kind: "created", value: 1 },
     { count: 1, style: "moon" },
   ),
   c(
     "satellite",
     "satellite-twin",
-    "Lunas gemelas",
+    message("m_9339fff445"),
     fragments(220),
     { count: 2, style: "moon" },
     35,
@@ -199,15 +210,15 @@ export const components: Component[] = [
   c(
     "satellite",
     "satellite-crystal",
-    "Compañero cristal",
+    message("m_02b18f2da7"),
     { kind: "daily", value: 1 },
     { count: 1, style: "crystal" },
   ),
-  c("ring", "ring-none", "Sin anillos", start, { style: "none" }),
+  c("ring", "ring-none", message("m_50c2a871df"), start, { style: "none" }),
   c(
     "ring",
     "ring-simple",
-    "Cinta celeste",
+    message("m_cd69deeecd"),
     fragments(50),
     { style: "simple" },
     15,
@@ -215,7 +226,7 @@ export const components: Component[] = [
   c(
     "ring",
     "ring-double",
-    "Abrazo doble",
+    message("m_71435b36f7"),
     fragments(140),
     { style: "double" },
     25,
@@ -227,11 +238,11 @@ export const components: Component[] = [
     { kind: "anomaly", value: 3 },
     { style: "broken" },
   ),
-  c("orbit", "orbit-thin", "Trazo fino", start, { style: "thin" }),
+  c("orbit", "orbit-thin", message("m_9b1d346a7a"), start, { style: "thin" }),
   c(
     "orbit",
     "orbit-dotted",
-    "Puntos de luz",
+    message("m_9747a793de"),
     fragments(60),
     { style: "dotted" },
     15,
@@ -239,20 +250,24 @@ export const components: Component[] = [
   c(
     "orbit",
     "orbit-glow",
-    "Trazo suave",
+    message("m_d5bd1c35b6"),
     { kind: "infinite", value: 60 },
     { style: "glow" },
   ),
   c(
     "orbit",
     "orbit-crystal",
-    "Cristal tallado",
+    message("m_45576faa58"),
     { kind: "campaign", value: 15 },
     { style: "crystal" },
   ),
 ];
-export type Design = Record<Category, string>;
-export type Planet = { name: string; design: Design };
+export type Design = Record<Category, string> &
+  Partial<Record<"biome" | "space" | "feature", string>>;
+export type Planet = {
+  name: string;
+  design: Design;
+};
 export const defaultDesign = (): Design =>
   Object.fromEntries(
     Object.keys(categories).map((k) => [
@@ -280,12 +295,20 @@ export type Universe = {
     created: number;
   };
   personalBest: number[];
-  challenges: { code: string; best: number; combo: number }[];
+  challenges: {
+    code: string;
+    best: number;
+    combo: number;
+  }[];
   anomalyTier: number;
   anomalyBest: number;
 };
 import type { MobileState } from "./mobile-state.ts";
-export type Save = BaseSave & { universe: Universe; mobile: MobileState };
+export type Save = BaseSave & {
+  universe: Universe;
+  mobile: MobileState;
+  presentation: Presentation;
+};
 export const freshUniverse = (): Universe => ({
   inventory: starterIds(),
   spent: 0,
@@ -337,30 +360,36 @@ export function conditionMet(s: Save, q: Condition) {
   }
 }
 export function requirement(q: Condition) {
-  const worlds = ["Menta", "Durazno", "Lavanda", "Glaciar", "Eclipse"];
+  const worlds = [
+    message("m_685d0edbbb"),
+    message("m_ab9dd65ab2"),
+    message("m_ab5899907d"),
+    message("m_c9057be2f0"),
+    message("m_45fc6c80b5"),
+  ];
   switch (q.kind) {
     case "start":
-      return "Disponible desde el inicio";
+      return message("m_ad3b7e1546");
     case "tutorial":
-      return "Completa el entrenamiento";
+      return message("m_eb4aa7579e");
     case "fragments":
-      return `Reúne ${q.value} fragmentos en total`;
+      return message("m_d737046bd4", { p0: q.value });
     case "world":
-      return `Completa ${worlds[q.value]}`;
+      return message("m_80d32a9721", { p0: worlds[q.value] });
     case "campaign":
-      return "Completa las 15 expediciones";
+      return message("m_dab4f63c18");
     case "combo":
-      return `Encadena ${q.value} luces`;
+      return message("m_f51109e9a5", { p0: q.value });
     case "infinite":
-      return `Resiste ${q.value} s en Infinito o Mi órbita`;
+      return message("m_fa31b35a94", { p0: q.value });
     case "daily":
-      return `Completa ${q.value} días distintos`;
+      return message("m_3ea5ac3778", { p0: q.value });
     case "clean":
-      return "Supera una expedición sin impactos";
+      return message("m_0e7f0a1d32");
     case "created":
-      return "Guarda tu primer planeta";
+      return message("m_f32919429f");
     case "anomaly":
-      return `Supera ${q.value} anomalías`;
+      return message("m_792fe21489", { p0: q.value });
   }
 }
 export const balance = (s: Save) =>
@@ -370,10 +399,10 @@ export const slotLimit = (s: Save) =>
 export function safeName(value: unknown) {
   return (
     (typeof value === "string" ? value : "")
-      .normalize("NFC")
+      .normalize(message("m_65f7a7975a"))
       .replace(/[<>\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, "")
       .trim()
-      .slice(0, 24) || "Mi pequeño mundo"
+      .slice(0, 24) || message("m_52d03be84a")
   );
 }
 export function normalizeDesign(value: unknown, inventory: string[]): Design {
@@ -387,6 +416,13 @@ export function normalizeDesign(value: unknown, inventory: string[]): Design {
       component(id)?.category === category
     )
       result[category] = id;
+  }
+  if (value && typeof value === "object") {
+    for (const cat of ["biome", "space", "feature"] as const) {
+      const id = (value as Partial<Design>)[cat];
+      if (typeof id === "string") result[cat] = id;
+    }
+    normalizeExtras(result, inventory);
   }
   return result;
 }
@@ -420,7 +456,10 @@ export function savePlanet(
   const created = index === s.universe.planets.length;
   s.universe.planets[index] = {
     name: safeName(name),
-    design: normalizeDesign(design, s.universe.inventory),
+    design: normalizeDesign(design, [
+      ...s.universe.inventory,
+      ...s.presentation.owned,
+    ]),
   };
   s.universe.selected = index;
   if (created) s.universe.stats.created++;
@@ -434,56 +473,61 @@ export const milestones: {
 }[] = [
   {
     id: "training",
-    name: "Primer contacto",
+    name: message("m_d698c9b4ec"),
     condition: { kind: "tutorial", value: 1 },
     reward: 10,
   },
-  { id: "menta", name: "Raíces", condition: world(0), reward: 15 },
+  {
+    id: "menta",
+    name: message("m_01ef9477ae"),
+    condition: world(0),
+    reward: 15,
+  },
   {
     id: "campaign",
-    name: "Cartógrafo celeste",
+    name: message("m_816ee9287a"),
     condition: { kind: "campaign", value: 15 },
     reward: 50,
   },
   {
     id: "light",
-    name: "Un puñado de estrellas",
+    name: message("m_594c56ab95"),
     condition: fragments(100),
     reward: 10,
   },
   {
     id: "chain",
-    name: "En tu ritmo",
+    name: message("m_12aa54e0e1"),
     condition: { kind: "combo", value: 10 },
     reward: 15,
   },
   {
     id: "infinite",
-    name: "Más allá del minuto",
+    name: message("m_88ebcc9543"),
     condition: { kind: "infinite", value: 90 },
     reward: 25,
   },
   {
     id: "daily",
-    name: "Tres amaneceres",
+    name: message("m_81169e9756"),
     condition: { kind: "daily", value: 3 },
     reward: 25,
   },
   {
     id: "clean",
-    name: "Paso intacto",
+    name: message("m_2b09b5ed15"),
     condition: { kind: "clean", value: 1 },
     reward: 15,
   },
   {
     id: "creator",
-    name: "Mi pequeño universo",
+    name: message("m_1e1f209ad6"),
     condition: { kind: "created", value: 1 },
     reward: 10,
   },
   {
     id: "anomaly",
-    name: "Entre anomalías",
+    name: message("m_309ca35a85"),
     condition: { kind: "anomaly", value: 3 },
     reward: 30,
   },
@@ -495,7 +539,10 @@ export function discover(s: Save, multiplier = 1) {
       s.universe.milestones.push(m.id);
       s.totalLights += Math.floor(m.reward * multiplier);
       found.push(
-        `Hito: ${m.name} · +${Math.floor(m.reward * multiplier)} fragmentos`,
+        message("m_252decb6f6", {
+          p0: m.name,
+          p1: Math.floor(m.reward * multiplier),
+        }),
       );
     }
   for (const c of components)

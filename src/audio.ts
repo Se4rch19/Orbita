@@ -4,6 +4,8 @@ export class Sound {
   enabled = true;
   musicEnabled = true;
   world = 0;
+  flavor = "neutral";
+  private colorFilter: BiquadFilterNode | null = null;
   voices = 0;
   private musicBus: GainNode | null = null;
   private fxBus: GainNode | null = null;
@@ -22,7 +24,10 @@ export class Sound {
         limiter.connect(this.ctx.destination);
         this.musicBus = this.ctx.createGain();
         this.musicBus.gain.value = 0;
-        this.musicBus.connect(limiter);
+        this.colorFilter = this.ctx.createBiquadFilter();
+        this.colorFilter.type = "lowpass";
+        this.musicBus.connect(this.colorFilter);
+        this.colorFilter.connect(limiter);
         this.fxBus = this.ctx.createGain();
         this.fxBus.gain.value = 0.6;
         this.fxBus.connect(limiter);
@@ -107,6 +112,17 @@ export class Sound {
     this.world = world;
     if (!this.ctx || !this.musicBus) return;
     const now = this.ctx.currentTime;
+    this.colorFilter?.frequency.setTargetAtTime(
+      this.flavor === "crystal"
+        ? 9000
+        : this.flavor === "deep"
+          ? 1100
+          : this.flavor === "warm"
+            ? 2400
+            : 5000,
+      now,
+      0.8,
+    );
     if (!active || !this.musicEnabled) {
       this.pause();
       return;
@@ -187,6 +203,7 @@ export class Sound {
   get diagnostics() {
     return {
       world: this.world,
+      flavor: this.flavor,
       music: this.musicEnabled,
       effects: this.enabled,
       voices: this.voices,

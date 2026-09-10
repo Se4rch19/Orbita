@@ -1,3 +1,6 @@
+import { t as message } from "./i18n.ts";
+import { drawWorldLife } from "./world-life";
+import { appearance } from "./stream";
 import { Game, TAU, random, type Item } from "./engine";
 import { sessionConfig, type Orbit } from "./config";
 import { pathPoint, lanePoint, radiusAt } from "./geometry";
@@ -27,6 +30,8 @@ export class Art {
   paths: Path2D[] = [];
   planetLayer: HTMLCanvasElement | null = null;
   motion = true;
+  rotation = 0;
+  particlePool: Particle[] = [];
   particles: Particle[] = [];
   stars = Array.from({ length: 62 }, (_, i) => {
     const rng = random(i * 121 + 80);
@@ -77,9 +82,12 @@ export class Art {
     c.closePath();
     c.clip();
     const grad = c.createLinearGradient(-r, -r, r, r);
-    grad.addColorStop(0, "#c5f8de");
-    grad.addColorStop(0.3, w.color);
-    grad.addColorStop(1, w.dark);
+    grad.addColorStop(
+      0,
+      this.world === 4 ? "#777287" : this.world === 1 ? "#ffe1ac" : "#c5f8de",
+    );
+    grad.addColorStop(0.3, this.world === 4 ? "#4b405e" : w.color);
+    grad.addColorStop(1, this.world === 4 ? "#17152c" : w.dark);
     c.fillStyle = grad;
     c.fillRect(-r * 1.2, -r * 1.2, r * 2.4, r * 2.4);
     c.fillStyle = w.dark + "80";
@@ -109,8 +117,12 @@ export class Art {
       this.circle(x, y, 1.4, "#e7ffe380");
     }
     c.restore();
-    // Tiny botanical silhouettes make each world feel alive.
-    for (let i = 0; i < 7; i++) {
+    // Curated silhouettes: vegetation, sparse warm vegetation, crystal spires, ice, then bare rock.
+    for (
+      let i = 0;
+      i < (this.world === 4 ? 0 : this.world === 1 ? 3 : 7);
+      i++
+    ) {
       const a = i * 0.91 + 0.3;
       c.save();
       c.rotate(a);
@@ -125,8 +137,16 @@ export class Art {
       c.stroke();
       c.fillStyle = w.color;
       c.beginPath();
-      c.ellipse(-4, -9, 4, 8, -0.65, 0, TAU);
-      c.ellipse(4, -14, 4, 7, 0.65, 0, TAU);
+      if (this.world >= 2) {
+        c.moveTo(-5, 0);
+        c.lineTo(-2, -20 - (i % 3) * 3);
+        c.lineTo(5, -6);
+        c.lineTo(4, 2);
+        c.closePath();
+      } else {
+        c.ellipse(-4, -9, 4, 8, -0.65, 0, TAU);
+        c.ellipse(4, -14, 4, 7, 0.65, 0, TAU);
+      }
       c.fill();
       c.restore();
     }
@@ -140,14 +160,17 @@ export class Art {
       p = lanePoint(orbits, lane, angle);
     for (let i = 0; i < 10 && this.particles.length < 80; i++) {
       const a = (i / 10) * TAU;
-      this.particles.push({
-        x: p.x,
-        y: p.y,
-        vx: Math.cos(a) * 75,
-        vy: Math.sin(a) * 75,
-        life: 1,
-        color,
-      });
+      const particle = this.particlePool.pop() ?? ({} as Particle);
+      this.particles.push(
+        Object.assign(particle, {
+          x: p.x,
+          y: p.y,
+          vx: Math.cos(a) * 75,
+          vy: Math.sin(a) * 75,
+          life: 1,
+          color,
+        }),
+      );
     }
   }
   path(orbit: Orbit, start = 0, end = TAU) {
@@ -163,7 +186,21 @@ export class Art {
   draw(t: number, game: Game | null, dt = 0) {
     const c = this.ctx;
     c.clearRect(0, 0, 600, 600);
-    for (const s of this.stars) {
+    const space = this.design?.space;
+    const fog = c.createRadialGradient(280, 260, 25, 300, 300, 310);
+    fog.addColorStop(
+      0,
+      space === "space-nebula" ? "#73509b30" : worlds[this.world].color + "12",
+    );
+    fog.addColorStop(1, "#00000000");
+    c.fillStyle = fog;
+    c.fillRect(0, 0, 600, 600);
+    if (space === "space-void") {
+      c.fillStyle = "#030610a0";
+      c.fillRect(0, 0, 600, 600);
+    }
+    for (const [index, s] of this.stars.entries()) {
+      if (space === "space-void" && index % 3) continue;
       c.globalAlpha = s.a * (this.motion ? 0.8 + 0.2 * Math.sin(t + s.x) : 1);
       this.circle(s.x, s.y, s.r, "#bfd9d7");
     }
@@ -220,7 +257,13 @@ export class Art {
       c.stroke();
       c.restore();
     });
+    c.save();
+    c.translate(300, 300);
+    c.rotate(this.rotation);
+    c.translate(-300, -300);
     c.drawImage(this.planetLayer!, 0, 0);
+    drawWorldLife(c, this.world, this.design, this.motion ? t : 0, !!game);
+    c.restore();
     if (this.design) drawSatellites(c, this.design, t, this.motion, !!game);
     const angle = game?.angle ?? (this.motion ? t * 0.22 : -0.9),
       lane = game?.radiusLane ?? orbits.length - 1;
@@ -229,9 +272,13 @@ export class Art {
       { angle: 3.5, lane: 1, kind: "light", passed: false },
     ];
     for (const item of items) {
-      if (item.passed) continue;
+      const entity = item as Item;
+      const alpha = appearance(entity, game?.time ?? t);
+      if (alpha <= 0 || (!entity.life && item.passed)) continue;
+      c.globalAlpha = alpha;
       const itemLane = game ? game.itemLane(item as Item) : item.lane;
-      const p = lanePoint(orbits, itemLane, item.angle);
+      const entityOrbits = entity.renderOrbits ?? orbits;
+      const p = lanePoint(entityOrbits, itemLane, item.angle);
       if (game?.config.assistance && item.kind !== "light") {
         const ahead = (item.angle - game.angle) * game.direction;
         if (ahead > 0 && ahead / Math.max(0.1, game.speed) < 0.9) {
@@ -247,7 +294,7 @@ export class Art {
       if (item.kind === "gap") {
         const width = (item as Item).width ?? 0.32,
           path = this.path(
-            orbits[item.lane],
+            entityOrbits[item.lane],
             item.angle - width / 2,
             item.angle + width / 2,
           );
@@ -260,13 +307,33 @@ export class Art {
         c.stroke(path);
         c.setLineDash([]);
         for (const a of [item.angle - width / 2, item.angle + width / 2]) {
-          const edge = pathPoint(orbits[item.lane], a);
+          const edge = pathPoint(entityOrbits[item.lane], a);
           this.circle(edge.x, edge.y, 3, "#ffb3a8");
         }
         continue;
       }
       c.save();
       c.translate(p.x, p.y);
+      const scale =
+        entity.life === "forming"
+          ? 0.45 + alpha * 0.55
+          : entity.life === "dissolving"
+            ? entity.collected
+              ? alpha
+              : 1 + (1 - alpha) * 0.25
+            : 1;
+      c.scale(scale, scale);
+      if (entity.life === "forming" && this.motion) {
+        for (let j = 0; j < 3; j++) {
+          const a = (j * TAU) / 3 + t * 2;
+          this.circle(
+            Math.cos(a) * (8 + (1 - alpha) * 12),
+            Math.sin(a) * (8 + (1 - alpha) * 12),
+            1.5,
+            item.kind === "light" ? "#ffdc9d" : "#dd9fb9",
+          );
+        }
+      }
       if (item.kind === "light") {
         c.rotate(Math.PI / 4);
         c.fillStyle = "#ffdc9d";
@@ -274,6 +341,14 @@ export class Art {
         c.strokeStyle = "#ffdc9d55";
         c.strokeRect(-10, -10, 20, 20);
       } else {
+        if (entity.family === "comet") {
+          c.strokeStyle = "#cba2ff";
+          c.lineWidth = 3;
+          c.beginPath();
+          c.moveTo(-22, -10);
+          c.lineTo(0, 0);
+          c.stroke();
+        }
         c.rotate(item.angle + 0.7);
         c.strokeStyle = "#ff9f98";
         c.fillStyle = "#dd7c7335";
@@ -301,6 +376,7 @@ export class Art {
       }
       c.restore();
     }
+    c.globalAlpha = 1;
     const direction = game?.direction ?? 1;
     for (let i = 1; i < 10; i++) {
       const p = lanePoint(orbits, lane, angle - direction * i * 0.025);
@@ -335,12 +411,13 @@ export class Art {
       c.fillText("×" + game.multiplier, 300, 304);
       c.fillStyle = "#c5efe1";
       c.font = '600 9px "Segoe UI", sans-serif';
-      c.fillText("FLUJO", 300, 325);
+      c.fillText(message("m_242eada33c"), 300, 325);
     }
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.life -= dt * 2;
       if (p.life <= 0) {
+        this.particlePool.push(p);
         this.particles.splice(i, 1);
         continue;
       }

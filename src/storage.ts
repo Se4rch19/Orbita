@@ -1,6 +1,10 @@
+import { t as message } from "./i18n.ts";
 import { worlds, LEVELS_PER_WORLD, type Mode } from "./config.ts";
 export { worlds } from "./config.ts";
-export type CampaignProgress = { cleared: boolean[]; best: number[] };
+export type CampaignProgress = {
+  cleared: boolean[];
+  best: number[];
+};
 export type DailyRecord = {
   date: number;
   best: number;
@@ -27,7 +31,11 @@ export type Save = {
   campaign: CampaignProgress[];
   daily: DailyRecord;
   dailyHistory: DailyRecord[];
-  history: { score: number; lights: number; mode: Mode }[];
+  history: {
+    score: number;
+    lights: number;
+    mode: Mode;
+  }[];
 };
 export const emptyDaily = (date = 0): DailyRecord => ({
   date,
@@ -50,7 +58,7 @@ export const fresh = (): Save => ({
   haptic: true,
   motion:
     typeof matchMedia === "undefined" ||
-    !matchMedia("(prefers-reduced-motion: reduce)").matches,
+    !matchMedia(message("m_af2ea5e68d")).matches,
   tutorial: false,
   infiniteBest: 0,
   unlockedWorlds: [true, false, false, false, false],
