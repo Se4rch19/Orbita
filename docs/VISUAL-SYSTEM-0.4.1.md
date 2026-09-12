@@ -1,4 +1,6 @@
-# Órbita 0.4.1 — visual system
+# Órbita 0.4.2 — visual system
+
+La actualización 0.4.2 añade `planet-renderer-2.ts`: arquetipos, familias de material, luz direccional normalizada, terminador y parámetros de rotación/cloud speed. La intro usa `IntroUniverseProfile` para representar varios sistemas originales. `interaction-lock.ts` protege el chrome del juego contra selección y menús contextuales, dejando editables los campos legítimos. El informe completo, la auditoría de las seis referencias planetarias y la matriz física están en `RELEASE-0.4.2.md`.
 
 `planet-profile.ts` resolves five curated identities and compatible personal/anomaly profiles. `living-world.ts` draws the sphere, projected fictional terrain, active surface, independently moving clouds, atmosphere, satellites, belt and trail with bounded Canvas operations. The same renderer is used by Home, Forge, intro and the game. Anomaly seeds vary the terrain projection; campaign composition stays curated.
 
