@@ -73,7 +73,7 @@ export function forgePage(
         return message("m_f4736f0456", {
           p0: draft.design[category] === c.id ? "selected" : "",
           p1: c.id,
-          p2: owned ? "" : "disabled",
+          p2: owned ? "" : 'data-preview="true"',
           p3: draft.design[category] === c.id,
           p4: owned ? "✧" : "◇",
           p5: c.name,
@@ -128,7 +128,7 @@ export function collectionPage(s: Save, category: Category) {
           p3: c.name,
           p4: requirement(c.condition),
           p5: owned
-            ? "Descubierto"
+            ? message("state.discovered")
             : ready
               ? message("m_e56862a427")
               : message("m_a679aeeabb"),
@@ -167,7 +167,9 @@ export function profilePage(s: Save) {
           p0: u.milestones.includes(m.id) ? "✓" : "◇",
           p1: m.name,
           p2: requirement(m.condition),
-          p3: u.milestones.includes(m.id) ? "Logrado" : `+${m.reward}`,
+          p3: u.milestones.includes(m.id)
+            ? message("state.achieved")
+            : `+${m.reward}`,
         }),
       )
       .join(""),
@@ -205,7 +207,11 @@ export function codesPage(s: Save, code: string) {
               p0: r.code,
               p1: r.best,
               p2: r.combo,
-              p3: button("code-history", "Cargar", `data-code="${r.code}"`),
+              p3: button(
+                "code-history",
+                message("action.load"),
+                `data-code="${r.code}"`,
+              ),
             }),
           )
           .join("")

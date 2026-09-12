@@ -1,12 +1,12 @@
-# Órbita 0.4.0
+# Órbita 0.4.1
 
-Juego Android offline de reflejos. Desliza alejándote del centro para salir una órbita, o acercándote para entrar. Cada gesto mueve un camino; nunca conecta los extremos. Campaña, cinco mundos, Calma, Forja con 49 componentes, planetas personales, códigos y Anomalías.
+Juego Android offline de reflejos. Desliza a la derecha o arriba para salir una órbita; a la izquierda o abajo para entrar. Cada gesto mueve un camino y nunca conecta los extremos, sin depender de dónde esté Luma. Campaña, cinco mundos, Calma, Forja con 49 componentes, planetas personales, códigos y Anomalías.
 
-Esta versión incorpora inmersión Android, aparición variable delante del viajero, tutorial interactivo con Luma, mundos procedurales vivos, 15 componentes ambientales nuevos e idiomas español/inglés. Conserva JUGAR / FORJA / BITÁCORA, los modos existentes, música procedural y respaldo nativo. La asistencia está desactivada inicialmente y entrega el 50% de fragmentos. Sin anuncios, pagos, cuentas ni permiso INTERNET.
+Esta versión centra la experiencia en planetas vivos, con terreno, nubes, lunas, cinturones y estelas que pasan por detrás y delante del cuerpo. Mundos / Forja / Colección / Bitácora; transiciones de 720 ms, intro compartida y calidad Auto/Baja/Media/Alta. Mantiene los modos, el flujo continuo de objetos, el tutorial, español/inglés, la música existente y el respaldo nativo. Sin anuncios, pagos, cuentas ni permiso INTERNET. Music Lab se integrará en otra tarea.
 
 ## Desarrollo
 
-Node 24, TypeScript, Vite, Canvas 2D y Capacitor 8. Una sola raíz de código: esta carpeta. Los artefactos se entregan fuera del repositorio en `outputs/Orbita-0.4.0/`.
+Node 24, TypeScript, Vite, Canvas 2D y Capacitor 8. Una sola raíz de código: esta carpeta. Los artefactos se entregan fuera del repositorio en `../outputs/Orbita-0.4.1/`.
 
 ```powershell
 npm ci
@@ -17,7 +17,7 @@ npm run build
 node scripts/serve.mjs
 ```
 
-Abrir [la vista previa](http://localhost:4173/?v=0.4.0). Dentro/Fuera también funcionan mediante botones y flechas del teclado. P/Escape pausa. Toque clásico usa zonas interior/exterior sin saltos cíclicos.
+Abrir [la vista previa](http://localhost:4173/?v=0.4.1). Dentro/Fuera también funcionan mediante botones y las cuatro flechas del teclado. P/Escape pausa. El toque clásico opcional conserva sus zonas interior/exterior; todos los deslizamientos usan la misma regla de pantalla.
 
 ## Validación
 
@@ -27,14 +27,17 @@ npm run qa:regression
 npm run qa:forge
 node scripts/qa-identity.mjs
 node scripts/qa-environment.mjs
+node scripts/qa-polish.mjs
+node scripts/qa-forge-visuals.mjs
+node scripts/qa-occlusion.mjs
 node --experimental-strip-types scripts/stress-stream.ts
 node --experimental-strip-types scripts/balance-mobile.ts
 node --experimental-strip-types scripts/daily-balance.ts
 ```
 
-Las pruebas de navegador usan perfiles aislados, requieren el servidor 4173 y generan evidencia en `../outputs/Orbita-0.4.0/validation/`; `ORBITA_QA_OUT` permite otra ruta. Los 89 tests anteriores se conservan intactos; hay 19 nuevos (108 en total), además de validación de 2 000 sesiones completas y 200 000 puertas procedurales.
+Las pruebas de navegador usan perfiles aislados, requieren el servidor 4173 y generan evidencia en `../outputs/Orbita-0.4.1/validation/`. La prueba de oclusión abre y cierra un servidor temporal en 4174. Se conservan los 108 tests anteriores y se añaden 23 (131 en total), además de estrés de 20 000 perfiles visuales y 2 000 sesiones completas del flujo de entidades.
 
-Los scripts `device-identity.mjs` y `device-worlds.mjs` son pruebas físicas supervisadas: operan únicamente el WebView debug de `com.orbita.minigame`. Requieren ADB, app en primer plano y reenvío CDP en 9223 a `webview_devtools_remote_<PID>`. `ORBITA_ADB` indica el ejecutable. Se calibraron para el Redmi 1080×2400, DPR 2,75 y WebView inmersivo sin desplazamiento superior. Revisar antes de otro dispositivo. La prueba de identidad reinicia únicamente el estado nuevo de introducción/tutorial; nunca borra progreso. Las pruebas usan gestos reales, crean registros locales de juego y pueden guardar el diseño del planeta. Los scripts físicos 0.3.1 permanecen como referencia histórica y no deben ejecutarse con sus coordenadas antiguas.
+Los scripts `device-polish.mjs`, `device-controls.mjs` y `device-final.mjs` son pruebas físicas supervisadas para `com.orbita.minigame`. Requieren ADB, app en primer plano y reenvío CDP en 9223 a `webview_devtools_remote_<PID>`. Se calibraron para el Redmi 1080×2400, DPR 2,75 y WebView inmersivo. La prueba final cambia temporalmente preferencias de presentación y las restaura; no borra progreso ni concede piezas. Las partidas de prueba pueden generar registros locales legítimos. Los scripts físicos anteriores permanecen como referencia histórica, no como instrucciones para la interfaz actual.
 
 ## Android
 
@@ -46,15 +49,18 @@ cd android
 .\gradlew.bat assembleDebug bundleRelease --console=plain
 ```
 
-Paquete `com.orbita.minigame`, versionName `0.4.0`, versionCode `5`. Actualizar con `adb install -r`, sin desinstalar. APK debug para pruebas; AAB sin firma para preparar publicación. Nunca incluir claves ni credenciales en Git. iOS conserva el proyecto y su versión, pero requiere macOS/Xcode y no está validado físicamente.
+Paquete `com.orbita.minigame`, versionName `0.4.1`, versionCode `6`. Actualizar con `adb install -r`, sin desinstalar. APK debug para pruebas; AAB sin firma para preparar publicación. Nunca incluir claves ni credenciales en Git. iOS conserva el proyecto y su versión, pero requiere macOS/Xcode y no está validado físicamente.
 
 ## Arquitectura y datos
 
 - `stream.ts`: cola oculta, aparición variable hacia delante, formación y disolución; pool de 64.
 - `tutorial.ts`, `presentation-state.ts`, `identity-ui.ts`: Luma, pasos guiados y ayuda persistente.
 - `i18n.ts`, `locales/`: es-MX/en-US, claves e interpolaciones verificadas.
-- `environment.ts`, `world-life.ts`: 15 piezas adicionales, compatibilidad y movimiento ambiental.
-- `input.ts`: gesto radial y movimiento adyacente.
+- `environment.ts`, `planet-profile.ts`, `living-world.ts`, `orbital-system.ts`: compatibilidad, planetas vivos y oclusión de elementos orbitales.
+- `quality.ts`: presupuestos decorativos y adaptación conservadora.
+- `world-home.ts`, `intro.ts`: presentación compartida.
+- `input.ts`: gesto relativo a la pantalla y movimiento adyacente.
+- `music-signals.ts`: frontera pequeña para integrar Music Lab posteriormente.
 - `config.ts`, `generator.ts`, `engine.ts`: perfiles, generación y simulación fija a 120 Hz.
 - `music.ts`, `audio.ts`: cinco temas originales, capas y síntesis WebAudio.
 - `mobile-ui.ts`, `main.ts`, `mobile.css`: experiencia móvil.
@@ -64,8 +70,8 @@ Paquete `com.orbita.minigame`, versionName `0.4.0`, versionCode `5`. Actualizar 
 
 Guardado raíz v3 con estado móvil versionado; no se guarda la simulación activa. Los códigos de 0.3 conservan el generador anterior; los nuevos usan formato 5/reglas 4. Todos los controles de la interfaz son adyacentes. El método cíclico antiguo del motor se conserva únicamente por compatibilidad con reglas y tests anteriores.
 
-La copia del sistema depende de Android y de la configuración del usuario. Se validó migración y persistencia local; no se certificó restauración desde nube ni entre dispositivos. Véanse [informe](docs/RELEASE-0.4.0.md), [publicación](docs/PUBLICACION.md) y [catálogo](docs/CATALOGO.md).
+La copia del sistema depende de Android y de la configuración del usuario. Se validó migración y persistencia local; no se certificó restauración desde nube ni entre dispositivos. Véanse [sistema visual](docs/VISUAL-SYSTEM-0.4.1.md), [Music Lab](docs/MUSIC-INTEGRATION-HOOKS.md), [publicación](docs/PUBLICACION.md) y [catálogo](docs/CATALOGO.md).
 
 ## Historial
 
-Repositorio oficial: [Se4rch19/Orbita](https://github.com/Se4rch19/Orbita). `v0.3.0` y `v0.3.1` conservan las bases anteriores; el trabajo está en `release/orbita-0.4.0`. Los documentos y scripts antiguos se recuperan desde la etiqueta base.
+Repositorio oficial: [Se4rch19/Orbita](https://github.com/Se4rch19/Orbita). `v0.3.0`, `v0.3.1` y `v0.4.0` conservan las bases anteriores. El desarrollo de esta entrega usa `release/orbita-0.4.1` y su publicación validada, `main` y `v0.4.1`.

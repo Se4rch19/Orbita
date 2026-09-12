@@ -10,8 +10,8 @@ import {
 } from "./environment.ts";
 export const lessonCopy = [
   [message("m_290e4a7773"), message("m_d48b717a95")],
-  [message("m_64480e6aeb"), message("m_b701a6bde3")],
-  [message("m_256f06a862"), message("m_f1ba6edaad")],
+  [message("m_64480e6aeb"), message("control.out")],
+  [message("m_256f06a862"), message("control.in")],
   [message("m_80d052e024"), message("m_52f0912c50")],
   [message("m_a4a1ce86b7"), message("m_e3a12ec626")],
   [message("m_7750479ecb"), message("m_96a6421d3f")],
@@ -70,9 +70,10 @@ export function environmentEditor(s: Save, p: Planet) {
               return message("m_bdfa24b442", {
                 p0: p.design[cat as "biome"] === part.id ? "selected" : "",
                 p1: part.id,
-                p2:
-                  !valid || (!owned && !extraAvailable(s, part.id))
-                    ? "disabled"
+                p2: !valid
+                  ? "disabled"
+                  : !owned && !extraAvailable(s, part.id)
+                    ? 'data-preview="true"'
                     : "",
                 p3: part.name,
                 p4: !valid

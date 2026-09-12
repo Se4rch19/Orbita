@@ -1,12 +1,13 @@
 import { t as message } from "./i18n.ts";
-import { drawWorldLife } from "./world-life";
+import { drawLivingWorld } from "./living-world";
+import { VisualQuality } from "./quality";
 import { appearance } from "./stream";
 import { Game, TAU, random, type Item } from "./engine";
 import { sessionConfig, type Orbit } from "./config";
 import { pathPoint, lanePoint, radiusAt } from "./geometry";
 import { worlds } from "./storage";
 import { component, type Design } from "./forge";
-import { drawPlanet, drawSatellites } from "./forge-art";
+import { drawPlanet } from "./forge-art";
 export type Particle = {
   x: number;
   y: number;
@@ -30,6 +31,14 @@ export class Art {
   paths: Path2D[] = [];
   planetLayer: HTMLCanvasElement | null = null;
   motion = true;
+  quality = new VisualQuality(
+    navigator.hardwareConcurrency,
+    (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4,
+  );
+  cinematic = false;
+  sceneTime = 0;
+  visualSeed = 41;
+  private pixelRatio = 0;
   rotation = 0;
   particlePool: Particle[] = [];
   particles: Particle[] = [];
@@ -158,7 +167,11 @@ export class Art {
         game?.config.orbits ??
         sessionConfig("voyage", { world: this.world }).orbits,
       p = lanePoint(orbits, lane, angle);
-    for (let i = 0; i < 10 && this.particles.length < 80; i++) {
+    for (
+      let i = 0;
+      i < 10 && this.particles.length < this.quality.budget.particles;
+      i++
+    ) {
       const a = (i / 10) * TAU;
       const particle = this.particlePool.pop() ?? ({} as Particle);
       this.particles.push(
@@ -184,6 +197,18 @@ export class Art {
     return p;
   }
   draw(t: number, game: Game | null, dt = 0) {
+    this.quality.sample(dt);
+    const ratio = Math.min(
+      devicePixelRatio || 1,
+      game ? 2 : this.quality.budget.dpr,
+    );
+    if (ratio !== this.pixelRatio) {
+      this.pixelRatio = ratio;
+      this.canvas.width = this.canvas.height = 600 * ratio;
+      this.ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+    if (this.motion) this.sceneTime += Math.min(dt, 0.1);
+    t = this.sceneTime;
     const c = this.ctx;
     c.clearRect(0, 0, 600, 600);
     const space = this.design?.space;
@@ -200,11 +225,39 @@ export class Art {
       c.fillRect(0, 0, 600, 600);
     }
     for (const [index, s] of this.stars.entries()) {
+      if (index >= this.quality.budget.stars) break;
       if (space === "space-void" && index % 3) continue;
       c.globalAlpha = s.a * (this.motion ? 0.8 + 0.2 * Math.sin(t + s.x) : 1);
-      this.circle(s.x, s.y, s.r, "#bfd9d7");
+      this.circle(
+        (s.x + t * ((index % 3) + 1) * 0.5) % 600,
+        s.y,
+        s.r,
+        "#bfd9d7",
+      );
     }
     c.globalAlpha = 1;
+    if (this.cinematic && !game) {
+      for (let i = 0; i < this.quality.budget.dust; i++) {
+        const x = (i * 131.7 + t * (2 + (i % 3))) % 600;
+        this.circle(x, (i * 83.3) % 600, 1.2, worlds[this.world].color + "45");
+      }
+      c.save();
+      c.translate(300, 300);
+      c.scale(1.8, 1.8);
+      c.rotate(this.rotation);
+      c.translate(-300, -300);
+      drawLivingWorld(
+        c,
+        this.world,
+        this.design,
+        t,
+        false,
+        this.quality.level,
+        this.visualSeed,
+      );
+      c.restore();
+      return;
+    }
     if (!game && this.previewWorld !== this.world) {
       this.previewWorld = this.world;
       this.previewOrbits = sessionConfig("voyage", {
@@ -262,9 +315,16 @@ export class Art {
     c.rotate(this.rotation);
     c.translate(-300, -300);
     c.drawImage(this.planetLayer!, 0, 0);
-    drawWorldLife(c, this.world, this.design, this.motion ? t : 0, !!game);
+    drawLivingWorld(
+      c,
+      this.world,
+      this.design,
+      this.motion ? t : 0,
+      !!game,
+      this.quality.level,
+      this.visualSeed,
+    );
     c.restore();
-    if (this.design) drawSatellites(c, this.design, t, this.motion, !!game);
     const angle = game?.angle ?? (this.motion ? t * 0.22 : -0.9),
       lane = game?.radiusLane ?? orbits.length - 1;
     const items = game?.items ?? [

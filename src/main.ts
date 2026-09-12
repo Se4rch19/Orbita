@@ -11,14 +11,18 @@ import {
   worldCoaching,
   featureCoaching,
 } from "./identity-ui";
-import { GUIDE_NAME, markSeen, introDuration } from "./presentation-state";
+import { GUIDE_NAME, markSeen } from "./presentation-state";
+import { showIntro } from "./intro";
+import { worldHome, worldPlayable, type HomeMode } from "./world-home";
+import { normalizeQuality, qualityLevels, VisualQuality } from "./quality";
 import { acquireExtra, environmentParts, compatible } from "./environment";
 import "./style.css";
 import "./redesign.css";
 import "./forge.css";
 import "./mobile.css";
 import "./identity.css";
-import { bindRadial } from "./input";
+import "./polish.css";
+import { bindScreenSwipe } from "./input";
 import {
   playHome,
   settingsContent,
@@ -77,6 +81,7 @@ import {
 } from "./progression";
 import { Art } from "./art";
 import { Sound } from "./audio";
+import { musicSignals } from "./music-signals";
 let lesson: Lesson | null = null;
 let pendingCoach: (() => void) | null = null;
 let lessonHazard = -1;
@@ -92,6 +97,9 @@ let save = readSave(),
   resultSaved = false,
   modalKind = "",
   toastTimer = 0;
+let browsedWorld = save.world;
+let homeMode: HomeMode = "voyage";
+let browseToken = 0;
 let selectedLevel = nextLevel(save, save.world),
   zenDuration: 60 | 180 | 0 = 60,
   sessionBest = 0,
@@ -122,6 +130,10 @@ const contextName = () =>
           ? names[game.mode]
           : "";
 const sound = new Sound();
+const visualQuality = new VisualQuality(
+  navigator.hardwareConcurrency,
+  (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4,
+);
 const names: Record<Mode, string> = {
   voyage: message("m_bce3d2abe3"),
   zen: message("m_b0b8fc593c"),
@@ -161,7 +173,12 @@ function preferences() {
   sound.enabled = save.mobile.effects;
   sound.musicEnabled = save.mobile.music;
   document.body.classList.toggle("reduced", !save.motion);
-  if (art) art.motion = save.motion;
+  if (art) {
+    art.motion =
+      save.motion && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (art.quality.choice !== (save.presentation.quality ?? "auto"))
+      art.quality.set(save.presentation.quality ?? "auto");
+  }
 }
 function toast(message: string) {
   document.querySelector(".toast")?.remove();
@@ -175,7 +192,7 @@ function toast(message: string) {
 }
 function header() {
   const selected = ["forge", "collection"].includes(page)
-    ? "forge"
+    ? page
     : page === "journal"
       ? "journal"
       : "play";
@@ -186,8 +203,9 @@ function header() {
     icon("settings", 19) +
     message("m_7d8c7ac484") +
     [
-      ["play", message("m_1d78e3859a")],
+      ["play", message("home.worlds")],
       ["forge", message("m_09cfdee8ca")],
+      ["collection", message("home.collection")],
       ["journal", message("m_32f15c9f72")],
     ]
       .map(
@@ -210,7 +228,7 @@ function header() {
   );
 }
 function home() {
-  return playHome(save);
+  return worldHome(save, browsedWorld, homeMode);
 }
 function campaign() {
   const w = save.world,
@@ -258,7 +276,7 @@ function campaign() {
           p13: open
             ? p.cleared[l]
               ? message("state.repeat")
-              : "Jugar"
+              : message("state.play")
             : icon("lock", 17),
         });
       })
@@ -341,12 +359,14 @@ function privacy() {
   return message("m_9872fd16a8", { p0: icon("arrow", 16) });
 }
 function render() {
+  browseToken++;
   game = null;
+  musicSignals.observe(null, false);
   paused = false;
   art = null;
   root.innerHTML = message("m_6823a5ebd0", {
     p0: header(),
-    p1: !["play", "forge", "journal"].includes(page)
+    p1: !["play", "forge", "collection", "journal"].includes(page)
       ? message("m_867193c0b1")
       : "",
     p2: page !== "play" ? discoveries(save) : "",
@@ -378,12 +398,14 @@ function render() {
   const canvas = root.querySelector<HTMLCanvasElement>("canvas");
   if (canvas) {
     art = new Art(canvas);
+    art.quality = visualQuality;
     art.world =
       page === "forge"
         ? personalProfile
         : page === "play"
-          ? continuation(save).world
+          ? browsedWorld
           : save.world;
+    art.cinematic = page === "play" || page === "forge";
     if (page === "forge") {
       art.custom = draft.design;
       let dragX: number | null = null;
@@ -437,7 +459,7 @@ function modal(kind: string, body: string) {
           ? message("m_41a5dd65dd")
           : kind === "tutorial"
             ? message("m_688a91d9f8")
-            : "Ajustes",
+            : message("settings.title"),
     p1: body,
   });
   document.body.append(wrapper);
@@ -448,6 +470,7 @@ function modal(kind: string, body: string) {
   );
 }
 function closeModal() {
+  pendingCoach = null;
   document.querySelector(".modal-backdrop")?.remove();
   modalKind = "";
   root.inert = false;
@@ -457,7 +480,30 @@ function settings() {
   modal(
     "settings",
     settingsContent(save) +
+      `<h3 class="section-label">${message("quality.label")}</h3><select id="quality-setting" aria-label="${message("quality.label")}">${qualityLevels.map((value) => `<option value="${value}" ${(save.presentation.quality ?? "auto") === value ? "selected" : ""}>${message("quality." + value)}</option>`).join("")}</select><p class="tiny">${message("quality.help")}</p>` +
       `<h3 class="section-label">${message("language.label")}</h3><select id="language-setting" aria-label="${message("language.label")}">${["system", "es-MX", "en-US"].map((value, i) => `<option value="${value}" ${save.presentation.language === value ? "selected" : ""}>${message(["language.system", "language.es", "language.en"][i])}</option>`).join("")}</select><p class="tiny">${message("language.help")}</p>`,
+  );
+}
+function openCalm() {
+  mode = "zen";
+  modal(
+    "calm",
+    message("m_7d80396763") +
+      [
+        [60, message("m_540cd5220e")],
+        [180, message("m_1b045aef58")],
+        [0, message("m_a3920279e2")],
+      ]
+        .map(
+          ([value, label]) =>
+            '<button class="secondary" data-action="calm-start" data-duration="' +
+            value +
+            '">' +
+            label +
+            "</button>",
+        )
+        .join("") +
+      message("m_f188788460"),
   );
 }
 function tutorial() {
@@ -635,7 +681,9 @@ function start(
       : message("m_425afcacfa"),
   });
   art = new Art(root.querySelector("canvas")!);
+  art.quality = visualQuality;
   art.world = g.config.world;
+  art.visualSeed = context.kind === "anomaly" ? g.seed : 41;
   if (context.kind === "personal") art.custom = structuredClone(draft.design);
   preferences();
   sound.flavor =
@@ -650,7 +698,7 @@ function start(
       : "neutral";
   sound.init();
   last = performance.now();
-  bindRadial(
+  bindScreenSwipe(
     root.querySelector("canvas")!,
     (delta) => switchOrbit(delta, true),
     () => save.mobile.controls === "classic",
@@ -965,6 +1013,11 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", async (e) => {
   const input = e.target as HTMLSelectElement;
+  if (input.id === "quality-setting") {
+    save.presentation.quality = normalizeQuality(input.value);
+    persist();
+    preferences();
+  }
   if (input.id === "language-setting") {
     save.presentation.language = ["es-MX", "en-US"].includes(input.value)
       ? (input.value as "es-MX" | "en-US")
@@ -991,6 +1044,61 @@ document.addEventListener("click", (e) => {
   if (!b) return;
   const action = b.dataset.action;
   switch (action) {
+    case "browse-world": {
+      const destination = Number(b.dataset.world);
+      if (
+        !Number.isInteger(destination) ||
+        destination < 0 ||
+        destination > 4 ||
+        destination === browsedWorld
+      )
+        break;
+      const token = ++browseToken;
+      const panel = root.querySelector<HTMLElement>(".world-home");
+      panel?.classList.add("departing");
+      const reduced =
+        !save.motion || matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setTimeout(
+        () => {
+          if (token !== browseToken || page !== "play") return;
+          browsedWorld = destination;
+          musicSignals.emit({ type: "world-changed", value: destination });
+          if (worldPlayable(save, destination)) {
+            save.world = destination;
+            persist();
+          }
+          render();
+          root.querySelector(".world-home")?.classList.add("arriving");
+        },
+        reduced ? 0 : 320,
+      );
+      break;
+    }
+    case "home-mode":
+      homeMode = b.dataset.mode as HomeMode;
+      root
+        .querySelectorAll<HTMLElement>('[data-action="home-mode"]')
+        .forEach((el) => el.setAttribute("aria-pressed", String(el === b)));
+      (
+        root.querySelector('[data-action="world-play"]') as HTMLButtonElement
+      ).disabled =
+        !worldPlayable(save, browsedWorld) &&
+        ["voyage", "zen"].includes(homeMode);
+      break;
+    case "world-play":
+      if (
+        ["voyage", "zen"].includes(homeMode) &&
+        !worldPlayable(save, browsedWorld)
+      )
+        break;
+      if (worldPlayable(save, browsedWorld)) {
+        save.world = browsedWorld;
+        persist();
+      }
+      mode = homeMode;
+      if (homeMode === "zen") openCalm();
+      else start(homeMode, nextLevel(save, save.world));
+      break;
     case "coach-close": {
       const resume = pendingCoach;
       pendingCoach = null;
@@ -1021,6 +1129,15 @@ document.addEventListener("click", (e) => {
       const id = b.dataset.id!;
       const part = environmentParts.find((p) => p.id === id);
       if (!part || !compatible(draft.design, id)) break;
+      if (b.dataset.preview) {
+        if (art) art.custom = { ...draft.design, [part.category]: id };
+        document.getElementById("planet-preview-name")!.textContent = message(
+          "forge.preview",
+          { name: part.name },
+        );
+        toast(message("forge.previewHelp"));
+        break;
+      }
       if (!save.presentation.owned.includes(id) && !acquireExtra(save, id)) {
         toast(message("m_0ef5516b28"));
         break;
@@ -1058,26 +1175,7 @@ document.addEventListener("click", (e) => {
       start("infinite", 0);
       break;
     case "mobile-calm":
-      mode = "zen";
-      modal(
-        "calm",
-        message("m_7d80396763") +
-          [
-            [60, message("m_540cd5220e")],
-            [180, message("m_1b045aef58")],
-            [0, message("m_a3920279e2")],
-          ]
-            .map(
-              ([value, label]) =>
-                '<button class="secondary" data-action="calm-start" data-duration="' +
-                value +
-                '">' +
-                label +
-                "</button>",
-            )
-            .join("") +
-          message("m_f188788460"),
-      );
+      openCalm();
       break;
     case "calm-start":
       zenDuration = Number(b.dataset.duration) as 60 | 180 | 0;
@@ -1149,6 +1247,19 @@ document.addEventListener("click", (e) => {
       break;
     case "forge-equip": {
       const c = component(b.dataset.component!);
+      if (c && !save.universe.inventory.includes(c.id)) {
+        if (!compatible({ ...draft.design, [c.category]: c.id }, c.id)) {
+          toast(message("m_55c86f3bed"));
+          break;
+        }
+        if (art) art.custom = { ...draft.design, [c.category]: c.id };
+        document.getElementById("planet-preview-name")!.textContent = message(
+          "forge.preview",
+          { name: c.name },
+        );
+        toast(message("forge.previewHelp"));
+        break;
+      }
       if (c && save.universe.inventory.includes(c.id)) {
         if (!compatible({ ...draft.design, [c.category]: c.id }, c.id)) {
           toast(message("m_55c86f3bed"));
@@ -1401,11 +1512,13 @@ document.addEventListener("keydown", (e) => {
   }
   if (game && !game.done) {
     if (
-      (e.code === "Space" || e.code === "ArrowUp" || e.code === "ArrowDown") &&
+      ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(
+        e.code,
+      ) &&
       !e.repeat
     ) {
       e.preventDefault();
-      switchOrbit(e.code === "ArrowDown" ? -1 : 1);
+      switchOrbit(["ArrowDown", "ArrowLeft"].includes(e.code) ? -1 : 1);
     }
     if (e.code === "Escape" || e.code === "KeyP") {
       e.preventDefault();
@@ -1461,6 +1574,8 @@ function frame(now: number) {
     game.update(dt);
     if (art && art.world !== game.config.world) {
       art.world = game.config.world;
+      art.visualSeed =
+        game.destination >= 5 ? game.seed + game.destination : 41;
       art.layerKey = "";
       if (
         game.mode === "infinite" &&
@@ -1481,6 +1596,7 @@ function frame(now: number) {
     hudElapsed += dt;
     for (const event of game.events) {
       if (event.type === "collect") {
+        musicSignals.emit({ type: "light-collected" });
         if (lesson?.step === 3) lessonProgress("collect");
         else if (lesson?.step === 6) {
           if (game.combo >= 5) lessonProgress("chain");
@@ -1494,6 +1610,8 @@ function frame(now: number) {
             : message("m_364095a10b", { p0: event.amount });
       }
       if (event.type === "hit") {
+        musicSignals.emit({ type: "shield-hit" });
+        if (!game.gentle) musicSignals.emit({ type: "damage" });
         if (game.gentle) sound.note(174, 0.4, 0.025);
         else sound.hit();
         art?.burst(event.angle, event.lane, "#ff9f98", game);
@@ -1540,6 +1658,7 @@ function frame(now: number) {
     }
     if (game.done) finish();
   }
+  musicSignals.observe(game, paused);
   if (game)
     sound.tick(
       game.config.world,
@@ -1566,6 +1685,7 @@ void (async () => {
   }
   selectLanguage(save.presentation.language);
   selectedLevel = nextLevel(save, save.world);
+  browsedWorld = save.world;
   forgeSlot = save.universe.selected;
   personalProfile = save.world;
   draft = structuredClone(
@@ -1577,7 +1697,7 @@ void (async () => {
   discover(save);
   persist();
   render();
-  const introMs = introDuration(save.presentation, save.motion);
+  const introState = structuredClone(save.presentation);
   save.presentation.launches++;
   persist();
   const welcome = () => {
@@ -1592,26 +1712,27 @@ void (async () => {
         ) + message("m_532a378fe8"),
       );
   };
-  if (introMs) {
-    const intro = document.createElement("button");
-    intro.className = "brand-intro";
-    intro.setAttribute("aria-label", message("m_8352967e34"));
-    intro.innerHTML = message("m_1fd13408ce");
-    document.body.append(intro);
-    let ended = false;
-    const end = () => {
-      if (ended) return;
-      ended = true;
-      welcome();
-    };
-    intro.onclick = end;
-    setTimeout(end, introMs);
-  } else welcome();
+  const ready = Promise.all([
+    document.fonts.ready,
+    new Promise((resolve) =>
+      requestAnimationFrame(() => {
+        art?.draw(0, null, 0);
+        resolve(true);
+      }),
+    ),
+  ]);
+  void showIntro(
+    introState,
+    save.motion && !matchMedia("(prefers-reduced-motion: reduce)").matches,
+    ready,
+    browsedWorld,
+    welcome,
+  );
   if (
     nativeDebug ||
     import.meta.env.DEV ||
-    /qa=(031|040)/.test(location.search)
-  )
+    /qa=(031|040|041)/.test(location.search)
+  ) {
     Object.defineProperty(window, "__orbitaDiagnostics", {
       get: () =>
         game
@@ -1642,6 +1763,18 @@ void (async () => {
             }
           : null,
     });
+    Object.defineProperty(window, "__orbitaVisualDiagnostics", {
+      get: () => ({
+        world: art?.world,
+        quality: visualQuality.level,
+        choice: visualQuality.choice,
+        budget: visualQuality.budget,
+        sceneTime: art?.sceneTime,
+        motion: art?.motion,
+        cachedScenes: art?.planetLayer ? 1 : 0,
+      }),
+    });
+  }
   requestAnimationFrame(frame);
 })();
 if (
