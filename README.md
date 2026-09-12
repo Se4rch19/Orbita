@@ -1,4 +1,4 @@
-# Órbita 0.4.1
+# Órbita 0.4.2
 
 Juego Android offline de reflejos. Desliza a la derecha o arriba para salir una órbita; a la izquierda o abajo para entrar. Cada gesto mueve un camino y nunca conecta los extremos, sin depender de dónde esté Luma. Campaña, cinco mundos, Calma, Forja con 49 componentes, planetas personales, códigos y Anomalías.
 
@@ -35,7 +35,7 @@ node --experimental-strip-types scripts/balance-mobile.ts
 node --experimental-strip-types scripts/daily-balance.ts
 ```
 
-Las pruebas de navegador usan perfiles aislados, requieren el servidor 4173 y generan evidencia en `../outputs/Orbita-0.4.1/validation/`. La prueba de oclusión abre y cierra un servidor temporal en 4174. Se conservan los 108 tests anteriores y se añaden 23 (131 en total), además de estrés de 20 000 perfiles visuales y 2 000 sesiones completas del flujo de entidades.
+Las pruebas de navegador usan perfiles aislados, requieren el servidor 4173 y generan evidencia en `../outputs/Orbita-0.4.2/validation/`. La prueba de oclusión abre y cierra un servidor temporal en 4174. La suite de 0.4.1 conserva 131 pruebas; 0.4.2 añade cobertura del bloqueo de interacción, renderer 2.0, perfiles, onboarding y paneles de modo.
 
 Los scripts `device-polish.mjs`, `device-controls.mjs` y `device-final.mjs` son pruebas físicas supervisadas para `com.orbita.minigame`. Requieren ADB, app en primer plano y reenvío CDP en 9223 a `webview_devtools_remote_<PID>`. Se calibraron para el Redmi 1080×2400, DPR 2,75 y WebView inmersivo. La prueba final cambia temporalmente preferencias de presentación y las restaura; no borra progreso ni concede piezas. Las partidas de prueba pueden generar registros locales legítimos. Los scripts físicos anteriores permanecen como referencia histórica, no como instrucciones para la interfaz actual.
 
@@ -49,7 +49,7 @@ cd android
 .\gradlew.bat assembleDebug bundleRelease --console=plain
 ```
 
-Paquete `com.orbita.minigame`, versionName `0.4.1`, versionCode `6`. Actualizar con `adb install -r`, sin desinstalar. APK debug para pruebas; AAB sin firma para preparar publicación. Nunca incluir claves ni credenciales en Git. iOS conserva el proyecto y su versión, pero requiere macOS/Xcode y no está validado físicamente.
+Paquete `com.orbita.minigame`, versionName `0.4.2`, versionCode `7`. Actualizar con `adb install -r`, sin desinstalar. APK debug para pruebas; AAB sin firma para preparar publicación. Nunca incluir claves ni credenciales en Git. iOS conserva el proyecto y su versión, pero requiere macOS/Xcode y no está validado físicamente.
 
 ## Arquitectura y datos
 

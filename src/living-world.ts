@@ -5,6 +5,7 @@ import { radiusAt } from "./geometry.ts";
 import { planetProfile } from "./planet-profile.ts";
 import { budgets, type QualityLevel } from "./quality.ts";
 import { drawOrbitalSystem } from "./orbital-system.ts";
+import { directionalLight, materialProfile } from "./planet-renderer-2.ts";
 const TAU = Math.PI * 2;
 export function drawLivingWorld(
   c: CanvasRenderingContext2D,
@@ -22,7 +23,13 @@ export function drawLivingWorld(
     ? component(design.shape)!.visual.shape!
     : worlds[world].shape;
   const variation = ((p.seed ^ 41) % 997) / 997;
-  const phase = time * 0.09 * p.activity + variation * TAU;
+  // Longitude advances while the stellar light stays fixed: this is the
+  // rotation illusion, rather than spinning a flat coin.
+  const phase =
+    time * p.rotationSpeed * p.rotationDirection * (p.activity > 0 ? 1 : 0) +
+    variation * TAU;
+  const light = directionalLight(p),
+    material = materialProfile(p);
   c.save();
   c.translate(300, 300);
   drawOrbitalSystem(c, p, design, time, r, quality, "back");
@@ -46,7 +53,14 @@ export function drawLivingWorld(
   }
   c.closePath();
   c.clip();
-  const base = c.createRadialGradient(-35, -38, 2, 5, 10, r * 1.4);
+  const base = c.createRadialGradient(
+    light.x * r * 0.95,
+    light.y * r * 0.95,
+    2,
+    8,
+    10,
+    r * 1.55,
+  );
   base.addColorStop(0, p.colors[0]);
   base.addColorStop(0.6, p.colors[1]);
   base.addColorStop(1, "#030917");
@@ -66,6 +80,7 @@ export function drawLivingWorld(
       p.biome === "ocean"
         ? ["#60d7ac", "#a3e1ad", "#3fae9a"][i % 3]
         : p.colors[0] + "a0";
+    if (material.material === "metallic") c.fillStyle = "#a8becb";
     c.strokeStyle = p.colors[0] + "aa";
     c.lineWidth = 1.2;
     if (p.biome === "crystal") {
@@ -119,7 +134,8 @@ export function drawLivingWorld(
   for (let i = 0; i < 9; i++) {
     const y = -r + i * 23,
       drift = Math.sin(time * 0.45 + i) * 8;
-    c.lineWidth = p.biome === "lava" ? 4 : 1.6;
+    c.lineWidth =
+      p.biome === "lava" ? 4 : material.material === "ice" ? 2.2 : 1.6;
     c.strokeStyle =
       p.biome === "lava"
         ? `rgba(255,157,64,${0.65 + Math.sin(time + i) * 0.22})`
@@ -189,21 +205,23 @@ export function drawLivingWorld(
     }
   }
   if (p.feature === "storm") {
+    // A compact eye + curved eyewall reads as a storm, while remaining a
+    // bounded procedural layer on low-end devices.
+    c.save();
+    c.translate(18, -14);
+    c.rotate(time * 0.24 * p.rotationDirection);
     c.strokeStyle = "#f2eaffcc";
     c.lineWidth = 3;
+    c.fillStyle = "#233a6ecc";
+    c.beginPath();
+    c.ellipse(0, 0, 5, 3, 0, 0, TAU);
+    c.fill();
     for (let i = 0; i < 4; i++) {
       c.beginPath();
-      c.ellipse(
-        18,
-        -14,
-        12 + i * 6,
-        5 + i * 4,
-        time * 0.3 + i * 0.3,
-        0,
-        Math.PI * 1.7,
-      );
+      c.ellipse(0, 0, 12 + i * 6, 5 + i * 4, i * 0.3, 0, Math.PI * 1.7);
       c.stroke();
     }
+    c.restore();
   }
   if (design?.surface === "surface-cosmic") {
     c.fillStyle = "#eff0ff";
@@ -218,10 +236,21 @@ export function drawLivingWorld(
     }
     c.globalAlpha = 1;
   }
-  const shade = c.createLinearGradient(-r, -r, r, r);
-  shade.addColorStop(0, "#ffffff18");
-  shade.addColorStop(0.4, "#00000000");
-  shade.addColorStop(1, "#000414e8");
+  const shade = c.createLinearGradient(
+    light.x * r,
+    light.y * r,
+    -light.x * r,
+    -light.y * r,
+  );
+  shade.addColorStop(
+    0,
+    `#ffffff${Math.round(18 + material.specular * 26).toString(16)}`,
+  );
+  shade.addColorStop(0.38, "#00000000");
+  shade.addColorStop(
+    1,
+    `#000414${Math.round(185 + (1 - light.intensity) * 50).toString(16)}`,
+  );
   c.fillStyle = shade;
   c.fillRect(-r * 1.2, -r * 1.2, r * 2.4, r * 2.4);
   c.restore();

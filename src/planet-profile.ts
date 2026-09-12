@@ -13,6 +13,15 @@ export type PlanetVisualProfile = {
   space: string;
   feature: string;
   activity: number;
+  archetype?: import("./planet-renderer-2.ts").PlanetArchetype;
+  material?: import("./planet-renderer-2.ts").MaterialFamily;
+  rotationSpeed: number;
+  rotationDirection: 1 | -1;
+  cloudSpeed: number;
+  lightDirection: [number, number];
+  lightIntensity: number;
+  damage: number;
+  hostStar?: { color: string; x: number; y: number };
 };
 const biomes: Biome[] = ["ocean", "dunes", "crystal", "frozen", "dead"];
 const palettes: [string, string][] = [
@@ -71,5 +80,37 @@ export function planetProfile(
       (world === 4 ? "void" : world === 2 ? "nebula" : "stars"),
     feature: design?.feature?.slice(8) ?? (world === 4 ? "fissure" : "none"),
     activity: [0.6, 1, 0.5, 0.4, 0.7][world],
+    archetype:
+      biome === "lava"
+        ? "volcanic"
+        : biome === "frozen"
+          ? "glacial"
+          : biome === "crystal"
+            ? "crystalline"
+            : biome === "dead"
+              ? "fragmented"
+              : "living",
+    material:
+      biome === "ocean"
+        ? "ocean"
+        : biome === "dunes"
+          ? "dust"
+          : biome === "frozen"
+            ? "ice"
+            : biome === "lava"
+              ? "lava"
+              : biome === "crystal"
+                ? "crystal"
+                : "rock",
+    rotationSpeed: 0.045 + (world % 3) * 0.018,
+    rotationDirection: world === 2 ? -1 : 1,
+    cloudSpeed: 0.08 + (world % 2) * 0.035,
+    lightDirection: world === 1 ? [-0.857, -0.514] : [-0.607, -0.795],
+    lightIntensity: world === 4 ? 0.68 : 0.86,
+    damage: world === 4 ? 0.78 : 0,
+    hostStar:
+      world === 1 || world === 4
+        ? { color: world === 1 ? "#ffc878" : "#e87a72", x: -0.8, y: -0.7 }
+        : undefined,
   };
 }

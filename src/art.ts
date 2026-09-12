@@ -8,6 +8,7 @@ import { pathPoint, lanePoint, radiusAt } from "./geometry";
 import { worlds } from "./storage";
 import { component, type Design } from "./forge";
 import { drawPlanet } from "./forge-art";
+import { drawIntroUniverse } from "./intro-universe";
 export type Particle = {
   x: number;
   y: number;
@@ -241,21 +242,29 @@ export class Art {
         const x = (i * 131.7 + t * (2 + (i % 3))) % 600;
         this.circle(x, (i * 83.3) % 600, 1.2, worlds[this.world].color + "45");
       }
-      c.save();
-      c.translate(300, 300);
-      c.scale(1.8, 1.8);
-      c.rotate(this.rotation);
-      c.translate(-300, -300);
-      drawLivingWorld(
-        c,
-        this.world,
-        this.design,
-        t,
-        false,
-        this.quality.level,
-        this.visualSeed,
-      );
-      c.restore();
+      if (
+        this.cinematic &&
+        this.design === null &&
+        this.canvas.classList.contains("intro-universe-canvas")
+      ) {
+        drawIntroUniverse(c, t, !this.motion);
+      } else {
+        c.save();
+        c.translate(300, 300);
+        c.scale(1.8, 1.8);
+        c.rotate(this.rotation);
+        c.translate(-300, -300);
+        drawLivingWorld(
+          c,
+          this.world,
+          this.design,
+          t,
+          false,
+          this.quality.level,
+          this.visualSeed,
+        );
+        c.restore();
+      }
       return;
     }
     if (!game && this.previewWorld !== this.world) {

@@ -37,6 +37,19 @@ export const polishEs: Record<string, string> = {
   "component.echoes": "Cinturón de asteroides",
   "component.aurora": "Aurora",
   "component.trail": "Estela estelar",
+  "mode.expedition": "Viaja por los cinco mundos y supera sus etapas.",
+  "mode.expeditionMeta": "{world} · Etapa {stage}/3 · {cleared} completadas",
+  "mode.calm":
+    "Juega sin derrota tradicional y disfruta el universo a tu ritmo.",
+  "mode.calmMeta": "1 min · 3 min · Continuo",
+  "mode.daily": "Un reto nuevo con reglas que cambian cada día.",
+  "mode.dailyMeta": "{world} · {duration}s · {modifier}",
+  "mode.infinite":
+    "Recorre los mundos y sigue hacia anomalías cada vez más difíciles.",
+  "mode.infiniteMeta": "Récord: {best} pts · {worlds} mundos",
+  "quality.resolved": "Actual: {level}",
+  "intro.universe": "UN UNIVERSO EN MOVIMIENTO",
+  "interaction.locked": "",
 };
 export const polishEn: Record<string, string> = {
   "forge.preview": "Preview · {name}",
@@ -75,4 +88,16 @@ export const polishEn: Record<string, string> = {
   "component.echoes": "Asteroid belt",
   "component.aurora": "Aurora",
   "component.trail": "Star trail",
+  "mode.expedition": "Travel through five worlds and master their stages.",
+  "mode.expeditionMeta": "{world} · Stage {stage}/3 · {cleared} complete",
+  "mode.calm":
+    "Play without traditional defeat and enjoy the universe at your pace.",
+  "mode.calmMeta": "1 min · 3 min · Endless",
+  "mode.daily": "A fresh challenge with rules that change each day.",
+  "mode.dailyMeta": "{world} · {duration}s · {modifier}",
+  "mode.infinite": "Travel the worlds and continue into ever harder anomalies.",
+  "mode.infiniteMeta": "Best: {best} pts · {worlds} worlds",
+  "quality.resolved": "Current: {level}",
+  "intro.universe": "A UNIVERSE IN MOTION",
+  "interaction.locked": "",
 };
