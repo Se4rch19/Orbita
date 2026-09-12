@@ -1,0 +1,141 @@
+{
+  "version": 3,
+  "totalLights": 194,
+  "best": 580,
+  "legacyBest": 0,
+  "bestCombo": 13,
+  "runs": 7,
+  "completed": 1,
+  "world": 0,
+  "sound": true,
+  "haptic": true,
+  "motion": true,
+  "tutorial": true,
+  "infiniteBest": 0,
+  "unlockedWorlds": [true, false, false, false, false],
+  "campaign": [
+    { "cleared": [true, false, false], "best": [580, 330, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] },
+    { "cleared": [false, false, false], "best": [0, 0, 0] }
+  ],
+  "daily": {
+    "date": 20260909,
+    "best": 90,
+    "played": true,
+    "completed": false,
+    "attempts": 1,
+    "rules": 2
+  },
+  "dailyHistory": [
+    {
+      "date": 20260909,
+      "best": 90,
+      "played": true,
+      "completed": false,
+      "attempts": 1,
+      "rules": 2
+    }
+  ],
+  "history": [
+    { "score": 330, "lights": 27, "mode": "voyage" },
+    { "score": 580, "lights": 58, "mode": "voyage" },
+    { "score": 260, "lights": 19, "mode": "voyage" },
+    { "score": 150, "lights": 15, "mode": "voyage" },
+    { "score": 150, "lights": 15, "mode": "voyage" },
+    { "score": 90, "lights": 9, "mode": "daily" },
+    { "score": 300, "lights": 6, "mode": "zen" }
+  ],
+  "universe": {
+    "inventory": [
+      "shape-circle",
+      "surface-garden",
+      "palette-mint",
+      "atmosphere-none",
+      "satellite-none",
+      "ring-none",
+      "orbit-thin",
+      "satellite-moon",
+      "shape-blob",
+      "atmosphere-halo",
+      "atmosphere-stars"
+    ],
+    "spent": 30,
+    "planets": [
+      {
+        "name": "Redmi · mi universo",
+        "design": {
+          "shape": "shape-blob",
+          "surface": "surface-garden",
+          "palette": "palette-mint",
+          "atmosphere": "atmosphere-stars",
+          "satellite": "satellite-moon",
+          "ring": "ring-none",
+          "orbit": "orbit-thin",
+          "biome": "biome-dunes",
+          "space": "space-nebula",
+          "feature": "feature-craters"
+        }
+      }
+    ],
+    "selected": 0,
+    "milestones": ["creator", "training", "chain", "light"],
+    "pending": [],
+    "introduced": true,
+    "stats": {
+      "lights": 149,
+      "seconds": 237,
+      "infiniteSeconds": 0,
+      "dailyDates": [],
+      "cleanRuns": 0,
+      "created": 1
+    },
+    "personalBest": [0, 0, 0, 0, 0],
+    "challenges": [
+      { "code": "ORB-0403-0402-0000-006F-39BA", "best": 40, "combo": 4 }
+    ],
+    "anomalyTier": 0,
+    "anomalyBest": 0
+  },
+  "mobile": {
+    "version": 1,
+    "controls": "radial",
+    "assistance": false,
+    "music": true,
+    "effects": true,
+    "daily": [
+      {
+        "date": 20260909,
+        "attempts": 1,
+        "tier": 0,
+        "best": 90,
+        "assisted": false
+      }
+    ],
+    "journey": {
+      "score": 0,
+      "seconds": 0,
+      "worlds": 0,
+      "destination": 0,
+      "combo": 0
+    },
+    "lastRunAssisted": false,
+    "assistedBest": 0
+  },
+  "presentation": {
+    "version": 1,
+    "language": "system",
+    "tutorial": "legacy",
+    "seen": ["world-0", "forge"],
+    "launches": 4,
+    "owned": [
+      "biome-ocean",
+      "space-stars",
+      "feature-none",
+      "biome-dunes",
+      "feature-craters",
+      "space-nebula"
+    ]
+  }
+}

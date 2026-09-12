@@ -3,7 +3,7 @@ import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { components } from "../src/forge.ts";
-const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.0/validation";
+const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.1/validation";
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch(),
   checks = [],

@@ -5,7 +5,7 @@ import { fresh3 } from "../src/storage3.ts";
 import { components } from "../src/forge.ts";
 import { environmentParts } from "../src/environment.ts";
 const b = await chromium.launch(),
-  out = "../outputs/Orbita-0.4.0/validation",
+  out = "../outputs/Orbita-0.4.1/validation",
   checks = [],
   errors = [];
 try {

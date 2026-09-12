@@ -1,7 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
-const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.0/validation";
+const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.1/validation";
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch(),
   checks = [],
@@ -16,7 +16,9 @@ try {
     await p.clock.install();
     await p.goto("http://localhost:4173/?qa=040");
     await expect(p.locator(".brand-intro")).toBeVisible();
+    await p.clock.runFor(1100);
     await p.locator(".brand-intro").click();
+    await p.clock.runFor(100);
     await expect(p.getByRole("dialog")).toContainText("Luma");
     assert.equal(await p.locator("html").getAttribute("lang"), locale);
     await p.getByRole("dialog").locator('[data-action="training"]').click();
