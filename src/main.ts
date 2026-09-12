@@ -13,7 +13,12 @@ import {
 } from "./identity-ui";
 import { GUIDE_NAME, markSeen } from "./presentation-state";
 import { showIntro } from "./intro";
-import { worldHome, worldPlayable, type HomeMode } from "./world-home";
+import {
+  worldHome,
+  modePanel,
+  worldPlayable,
+  type HomeMode,
+} from "./world-home";
 import { normalizeQuality, qualityLevels, VisualQuality } from "./quality";
 import { acquireExtra, environmentParts, compatible } from "./environment";
 import "./style.css";
@@ -82,6 +87,8 @@ import {
 import { Art } from "./art";
 import { Sound } from "./audio";
 import { musicSignals } from "./music-signals";
+import { installInteractionLock } from "./interaction-lock";
+installInteractionLock();
 let lesson: Lesson | null = null;
 let pendingCoach: (() => void) | null = null;
 let lessonHazard = -1;
@@ -143,7 +150,8 @@ const names: Record<Mode, string> = {
 };
 const icons: Record<string, string> = {
   orbit: message("m_91dbc8d5f5"),
-  settings: message("m_5bd01e5aee"),
+  settings:
+    '<path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Zm0-6.1 1.1 2.8a7.5 7.5 0 0 1 2.3 1l2.8-1.1 1.8 1.8-1.1 2.8a7.5 7.5 0 0 1 1 2.3l2.8 1.1v2.6l-2.8 1.1a7.5 7.5 0 0 1-1 2.3l1.1 2.8-1.8 1.8-2.8-1.1a7.5 7.5 0 0 1-2.3 1L12 22l-1.1-2.8a7.5 7.5 0 0 1-2.3-1l-2.8 1.1L4 17.5l1.1-2.8a7.5 7.5 0 0 1-1-2.3l-2.8-1.1V8.7l2.8-1.1a7.5 7.5 0 0 1 1-2.3L4 2.5l1.8-1.8 2.8 1.1a7.5 7.5 0 0 1 2.3-1L12 2.1Z"/>',
   star: message("m_7e59b8faef"),
   arrow: message("m_a8baa4243c"),
   award: message("m_6dcae87620"),
@@ -480,7 +488,7 @@ function settings() {
   modal(
     "settings",
     settingsContent(save) +
-      `<h3 class="section-label">${message("quality.label")}</h3><select id="quality-setting" aria-label="${message("quality.label")}">${qualityLevels.map((value) => `<option value="${value}" ${(save.presentation.quality ?? "auto") === value ? "selected" : ""}>${message("quality." + value)}</option>`).join("")}</select><p class="tiny">${message("quality.help")}</p>` +
+      `<h3 class="section-label">${message("quality.label")}</h3><select id="quality-setting" aria-label="${message("quality.label")}">${qualityLevels.map((value) => `<option value="${value}" ${(save.presentation.quality ?? "auto") === value ? "selected" : ""}>${message("quality." + value)}</option>`).join("")}</select><p class="tiny quality-resolved">${message("quality.resolved", { level: message("quality." + visualQuality.level) })}</p><p class="tiny">${message("quality.help")}</p>` +
       `<h3 class="section-label">${message("language.label")}</h3><select id="language-setting" aria-label="${message("language.label")}">${["system", "es-MX", "en-US"].map((value, i) => `<option value="${value}" ${save.presentation.language === value ? "selected" : ""}>${message(["language.system", "language.es", "language.en"][i])}</option>`).join("")}</select><p class="tiny">${message("language.help")}</p>`,
   );
 }
@@ -1084,6 +1092,19 @@ document.addEventListener("click", (e) => {
       ).disabled =
         !worldPlayable(save, browsedWorld) &&
         ["voyage", "zen"].includes(homeMode);
+      {
+        const labels = [
+          "m_bce3d2abe3",
+          "m_b0b8fc593c",
+          "m_128f39eee8",
+          "m_47ab7fb410",
+        ];
+        const modes: HomeMode[] = ["voyage", "zen", "daily", "infinite"];
+        const panel = modePanel(save, browsedWorld, homeMode);
+        const target = root.querySelector<HTMLElement>(".mode-panel");
+        if (target)
+          target.innerHTML = `<strong>${message(labels[modes.indexOf(homeMode)])}</strong><p>${panel[0]}</p><small>${panel[1]}</small>`;
+      }
       break;
     case "world-play":
       if (

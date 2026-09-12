@@ -13,6 +13,13 @@ import { MusicSignals, type MusicSignal } from "../src/music-signals.ts";
 import { worldPlayable } from "../src/world-home.ts";
 import { environmentParts, compatible } from "../src/environment.ts";
 import { orbitalSide } from "../src/orbital-system.ts";
+import {
+  archetypeForProfile,
+  directionalLight,
+  materialProfile,
+  validateRendererProfile,
+} from "../src/planet-renderer-2.ts";
+import { modePanel } from "../src/world-home.ts";
 test("orbital depth divides each revolution into rear and front passes", () => {
   for (let turn = -4; turn <= 4; turn++) {
     assert.equal(orbitalSide(turn * Math.PI * 2 + Math.PI / 2), "front");
@@ -219,4 +226,45 @@ test("20,000 procedural visual profiles remain finite and within budgets", () =>
     assert.ok(p.colors.every((color) => /^#[0-9a-f]{6}$/i.test(color)));
     assert.notEqual(JSON.stringify(p).includes("NaN"), true);
   }
+});
+test("Planet Renderer 2.0 exposes coherent archetypes, materials, rotation and light", () => {
+  const profiles = Array.from({ length: 5 }, (_, world) =>
+    planetProfile(world),
+  );
+  assert.deepEqual(profiles.map(archetypeForProfile), [
+    "living",
+    "living",
+    "crystalline",
+    "glacial",
+    "fragmented",
+  ]);
+  assert.equal(materialProfile(profiles[0]).material, "ocean");
+  assert.equal(materialProfile(profiles[1]).material, "dust");
+  assert.ok(directionalLight(profiles[0]).intensity > 0);
+  profiles.forEach((profile) => {
+    assert.ok(validateRendererProfile(profile));
+    assert.ok(Math.abs(Math.hypot(...profile.lightDirection) - 1) < 0.01);
+  });
+});
+test("mode panel is contextual and daily data is live", () => {
+  const save = fresh3();
+  for (const mode of ["voyage", "zen", "daily", "infinite"] as const) {
+    const [description, meta] = modePanel(save, 0, mode);
+    assert.ok(description.length > 10);
+    assert.ok(meta.length > 3);
+  }
+});
+test("game interaction lock leaves editable fields available", () => {
+  const css = readFileSync(
+    new URL("../src/style.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(css, /user-select:\s*none/);
+  assert.match(css, /input,\s*\r?\ntextarea/);
+  const source = readFileSync(
+    new URL("../src/interaction-lock.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /input, textarea/);
+  assert.match(source, /contextmenu/);
 });

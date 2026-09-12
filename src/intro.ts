@@ -19,7 +19,7 @@ export async function showIntro(
   intro.className =
     "brand-intro cinematic-intro" + (state.launches ? " repeat" : "");
   intro.setAttribute("aria-label", t("intro.skip"));
-  intro.innerHTML = `<canvas></canvas><i class="intro-traveler"></i><strong>ÓRBITA</strong><small>${t("home.tagline")}</small><span class="intro-skip">${t("intro.skip")}</span>`;
+  intro.innerHTML = `<canvas class="intro-universe-canvas"></canvas><i class="intro-traveler"></i><strong>ÓRBITA</strong><small>${t("home.tagline")}</small><span class="intro-skip">${t("intro.skip")}</span>`;
   document.body.append(intro);
   const scene = new Art(intro.querySelector("canvas")!);
   scene.cinematic = true;
