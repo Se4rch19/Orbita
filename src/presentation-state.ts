@@ -1,4 +1,5 @@
 export type Language = "system" | "es-MX" | "en-US";
+import { normalizeQuality, type Quality } from "./quality.ts";
 export type Presentation = {
   version: 1;
   language: Language;
@@ -6,6 +7,7 @@ export type Presentation = {
   seen: string[];
   launches: number;
   owned: string[];
+  quality?: Quality;
 };
 export const freshPresentation = (): Presentation => ({
   version: 1,
@@ -23,6 +25,7 @@ export function normalizePresentation(
   if (experienced) d.tutorial = "legacy";
   if (!raw || typeof raw !== "object") return d;
   const r = raw as Partial<Presentation>;
+  if (r.quality !== undefined) d.quality = normalizeQuality(r.quality);
   if (r.language === "es-MX" || r.language === "en-US") d.language = r.language;
   if (["new", "complete", "skipped", "legacy"].includes(r.tutorial!))
     d.tutorial = r.tutorial!;
@@ -60,5 +63,6 @@ export function markSeen(state: Presentation, key: string) {
   return true;
 }
 export const GUIDE_NAME = "Luma";
+/** Legacy 0.4.0 timing contract; 0.4.1 presentation uses intro-state.ts. */
 export const introDuration = (state: Presentation, motion: boolean) =>
   !motion ? 0 : state.launches ? 450 : 1400;

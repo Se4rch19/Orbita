@@ -1,7 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
-const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.0/validation";
+const out = process.env.ORBITA_QA_OUT ?? "../outputs/Orbita-0.4.1/validation";
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch(),
   checks = [],
@@ -60,11 +60,15 @@ try {
     await a("pause").click();
     await a("abandon").click();
   };
-  await expect(p.locator(".play-cards button")).toHaveCount(4);
-  await expect(p.locator(".bottom-nav button")).toHaveCount(3);
+  const startMode = async (mode) => {
+    await p.locator(`[data-action="home-mode"][data-mode="${mode}"]`).click();
+    await a("world-play").click();
+  };
+  await expect(p.locator(".world-modes button")).toHaveCount(4);
+  await expect(p.locator(".bottom-nav button")).toHaveCount(4);
   await p.screenshot({ path: out + "/01-inicio.png", fullPage: true });
   checks.push(
-    "three primary destinations, continuation and four compact mode cards",
+    "four primary destinations, planetary home and four compact modes",
   );
   await a("settings").click();
   await expect(
@@ -138,12 +142,12 @@ try {
   checks.push(
     "independent training, campaign locks, pause/resume and settlement",
   );
-  await a("mobile-calm").click();
+  await startMode("zen");
   await p.locator('[data-action="calm-start"][data-duration="180"]').click();
   await p.clock.fastForward(181000);
   await expect(p.getByRole("dialog")).toBeVisible();
   await a("result-home").click();
-  await a("mobile-calm").click();
+  await startMode("zen");
   await p.locator('[data-action="calm-start"][data-duration="0"]').click();
   await p.clock.fastForward(71000);
   assert.equal((await d()).done, false);
@@ -151,7 +155,7 @@ try {
   await a("end-calm").click();
   await a("result-home").click();
   checks.push("3-minute and continuous Calma settlement");
-  await a("mobile-daily").click();
+  await startMode("daily");
   let v = await d();
   assert.equal(v.mode, "daily");
   const ds = (await read()).mobile.daily[0];
@@ -159,12 +163,12 @@ try {
   await expect(p.locator("#objective")).toContainText("Señal");
   await p.clock.fastForward(80000);
   await a("result-home").click();
-  await a("mobile-daily").click();
+  await startMode("daily");
   assert.equal((await read()).mobile.daily[0].attempts, 2);
   assert.equal((await d()).world, v.world);
   await home();
   checks.push("daily tier HUD and same-day varied attempts tracked");
-  await a("mobile-infinite").click();
+  await startMode("infinite");
   assert.equal((await d()).world, 0);
   await p.clock.fastForward(400000);
   await expect(p.getByRole("dialog")).toBeVisible();
@@ -173,7 +177,7 @@ try {
   checks.push("infinite starts Menta and stores journey record");
   await a("open-codes").click();
   await a("back").click();
-  await expect(a("continue")).toBeVisible();
+  await expect(a("world-play")).toBeVisible();
   for (const width of [320, 390, 1440]) {
     await p.setViewportSize({ width, height: width === 320 ? 568 : 1000 });
     for (const view of ["play", "forge", "journal"]) {

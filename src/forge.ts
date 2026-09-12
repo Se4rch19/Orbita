@@ -184,7 +184,7 @@ export const components: Component[] = [
   c(
     "atmosphere",
     "atmosphere-aurora",
-    "Aurora",
+    message("component.aurora"),
     { kind: "infinite", value: 90 },
     { style: "aurora" },
   ),
@@ -234,7 +234,7 @@ export const components: Component[] = [
   c(
     "ring",
     "ring-broken",
-    "Ecos",
+    message("component.echoes"),
     { kind: "anomaly", value: 3 },
     { style: "broken" },
   ),
@@ -250,7 +250,7 @@ export const components: Component[] = [
   c(
     "orbit",
     "orbit-glow",
-    message("m_d5bd1c35b6"),
+    message("component.trail"),
     { kind: "infinite", value: 60 },
     { style: "glow" },
   ),

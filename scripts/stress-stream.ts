@@ -100,7 +100,7 @@ for (const context of ["campaign", "daily", "endless", "anomaly", "personal"]) {
   result.contexts[context] = 400;
 }
 writeFileSync(
-  "../outputs/Orbita-0.4.0/validation/stress-stream.json",
+  process.env.ORBITA_STRESS_OUT ?? "../outputs/Orbita-0.4.1/validation/stress-stream.json",
   JSON.stringify(result, null, 2),
 );
 console.log(result);

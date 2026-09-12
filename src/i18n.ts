@@ -1,9 +1,10 @@
 import es from "./locales/es-MX.json" with { type: "json" };
 import en from "./locales/en-US.json" with { type: "json" };
 import type { Language } from "./presentation-state.ts";
+import { polishEs, polishEn } from "./locales/polish.ts";
 export const dictionaries: Record<"es-MX" | "en-US", Record<string, string>> = {
-  "es-MX": es,
-  "en-US": en,
+  "es-MX": { ...es, ...polishEs },
+  "en-US": { ...en, ...polishEn },
 };
 export function resolveLanguage(choice: Language, system: string) {
   return choice === "system"
